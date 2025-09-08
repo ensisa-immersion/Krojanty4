@@ -60,25 +60,36 @@ int entree_valide(const char *buffer) {
     return coord_valide(buffer[0], buffer[1]) && coord_valide(buffer[3], buffer[4]);
 }
 
-void debug_send(int sock, const char *msg) {
-    if (sock != -1) send(sock, msg, strlen(msg), 0);
+// Interdit les déplacements en diagonale
+int deplacement_diagonale_interdit(const char *buffer) {
+    int col1 = buffer[0] - 'A';
+    int row1 = buffer[1] - '1';
+    int col2 = buffer[3] - 'A';
+    int row2 = buffer[4] - '1';
+    // Déplacement diagonal si les deux coordonnées changent
+    return !((col1 != col2) && (row1 != row2));
+}
+
+void envoyer_message(int fd, const char *msg) {
+    if (fd != -1) {
+        send(fd, msg, strlen(msg), 0);
+    }
 }
 
 int main(void) {
     int joueurs[NB_JOUEURS] = {-1, -1};
-    int sock_debug = -1;
 
     struct sockaddr_in adr_serv;
     initialiser_adresse(&adr_serv, PORT_SERVEUR);
 
-    int sock_serv = initialiser_socket(&adr_serv, NB_JOUEURS + 1);
+    int sock_serv = initialiser_socket(&adr_serv, NB_JOUEURS);
 
     printf("[INFO] Serveur sur %d\n", PORT_SERVEUR);
 
-    int nb_connectes = 0;
-    printf("[INFO] Attente de connexion des joueurs et du client debug...\n");
+    printf("[INFO] Attente de connexion des joueurs...\n");
 
-    while (nb_connectes < NB_JOUEURS || sock_debug == -1) {
+    while (1) {
+        // Acceptation des nouveaux clients si une place est libre
         int cli = accepter_client(sock_serv);
         if (cli != -1) {
             char buffer[TAILLE_BUFFER + 1] = {0};
@@ -87,58 +98,71 @@ int main(void) {
 
             printf("[DEBUG] Message recu lors de la connexion: '%s'\n", buffer);
 
-            if (sock_debug == -1 && strstr(buffer, "DEBUG") != NULL) {
-                sock_debug = cli;
-                printf("[INFO] Client debug connecte (fd=%d)\n", cli);
-                debug_send(sock_debug, "[DEBUG] Client debug connecte\n");
-            } else if (nb_connectes < NB_JOUEURS) {
-                joueurs[nb_connectes++] = cli;
+            int place = -1;
+            for (int i = 0; i < NB_JOUEURS; i++) {
+                if (joueurs[i] == -1) {
+                    place = i;
+                    break;
+                }
+            }
+            if (place != -1) {
+                joueurs[place] = cli;
                 char msg[] = "Connecte au serveur de jeu 9x9\n";
-                send(cli, msg, strlen(msg), 0);
-                printf("[INFO] Joueur %d connecte (fd=%d)\n", nb_connectes, cli);
-                char dbgmsg[64];
-                snprintf(dbgmsg, sizeof(dbgmsg), "[DEBUG] Joueur %d connecte\n", nb_connectes);
-                debug_send(sock_debug, dbgmsg);
+                envoyer_message(cli, msg);
+                printf("[INFO] Joueur %d connecte (fd=%d)\n", place + 1, cli);
             } else {
-                // Trop de connexions
                 char msg[] = "Serveur complet\n";
-                send(cli, msg, strlen(msg), 0);
+                envoyer_message(cli, msg);
                 close(cli);
                 printf("[WARN] Connexion refusee, serveur complet (fd=%d)\n", cli);
             }
         }
+
+        // Si les deux joueurs sont connectés, on commence la partie
+        if (joueurs[0] != -1 && joueurs[1] != -1) {
+            printf("[INFO] Les deux joueurs sont connectes. Debut de la partie.\n");
+            break;
+        }
         usleep(100000);
     }
-    printf("[INFO] Les deux joueurs sont connectes. Debut de la partie.\n");
-    debug_send(sock_debug, "[DEBUG] Les deux joueurs sont connectes. Debut de la partie.\n");
 
     int tour = 0;
     char buffer[TAILLE_BUFFER + 1];
     while (1) {
         int sj = joueurs[tour];
+        if (sj == -1) {
+            // Attente de reconnexion du joueur
+            printf("[INFO] Joueur %d deconnecte, attente de reconnexion...\n", tour + 1);
+            usleep(100000);
+            continue;
+        }
         printf("[INFO] Attente du coup du joueur %d (fd=%d)...\n", tour + 1, sj);
         int recu = recv(sj, buffer, TAILLE_BUFFER, 0);
         if (recu > 0) {
             buffer[recu] = '\0';
             printf("[INFO] Recu du joueur %d: %s\n", tour + 1, buffer);
-            char dbgmsg[128];
-            snprintf(dbgmsg, sizeof(dbgmsg), "[DEBUG] Joueur %d a joue: %s\n", tour + 1, buffer);
-            debug_send(sock_debug, dbgmsg);
 
-            if (entree_valide(buffer)) {
+            if (!entree_valide(buffer)) {
+                char msg_err[] = "Format ou coordonnees invalides. Exemple: A2:A3 (A-I, 1-9)\n";
+                envoyer_message(sj, msg_err);
+                printf("[WARN] Coup invalide du joueur %d: %s\n", tour + 1, buffer);
+            } else if (!deplacement_diagonale_interdit(buffer)) {
+                char msg_err[] = "Deplacement diagonal interdit. Seuls les deplacements horizontaux ou verticaux sont autorises.\n";
+                envoyer_message(sj, msg_err);
+                printf("[WARN] Deplacement diagonal interdit pour joueur %d: %s\n", tour + 1, buffer);
+            } else {
                 int autre = (tour + 1) % NB_JOUEURS;
                 char msg_adv[TAILLE_BUFFER + 32];
                 snprintf(msg_adv, sizeof(msg_adv), "Adversaire a joue: %s\n", buffer);
-                send(joueurs[autre], msg_adv, strlen(msg_adv), 0);
+                envoyer_message(joueurs[autre], msg_adv);
                 printf("[INFO] Coup valide du joueur %d, transmis a l'adversaire.\n", tour + 1);
-                debug_send(sock_debug, "[DEBUG] Coup valide\n");
-            } else {
-                char msg_err[] = "Format ou coordonnees invalides. Exemple: A2:A3 (A-I, 1-9)\n";
-                send(sj, msg_err, strlen(msg_err), 0);
-                printf("[WARN] Coup invalide du joueur %d: %s\n", tour + 1, buffer);
-                debug_send(sock_debug, "[DEBUG] Coup invalide\n");
+                tour = autre;
             }
-            tour = (tour + 1) % NB_JOUEURS;
+        } else if (recu == 0) {
+            // Déconnexion du joueur
+            printf("[WARN] Joueur %d (fd=%d) deconnecte.\n", tour + 1, sj);
+            close(sj);
+            joueurs[tour] = -1;
         }
         usleep(100000);
     }
