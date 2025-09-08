@@ -8,14 +8,34 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <pthread.h>
+
 #include "../include/client.h"
 
-/**
- * Fonction client qui permet de se connecter à un serveur donné par son adresse IP et son port.
- * @param ip_address Adresse IP du serveur.
- * @param port Port du serveur.
- * @return 0 en cas de succès, -1 en cas d'erreur.
- */
+void* receive_message(int client_socket) {
+    // Réception des données envoyées par le serveur
+    char server_response[256];
+    while (1) { // Boucle infinie pour recevoir en continu
+        ssize_t bytes_received = recv(client_socket, server_response, sizeof(server_response) - 1, 0);
+        if (bytes_received <= 0) {
+            perror("Erreur lors de la réception ou connexion fermée");
+            break;
+        }
+        server_response[bytes_received] = '\0'; // Terminaison de la chaîne
+        printf("Message du serveur : %s\n", server_response);
+    }
+
+    printf("je sors de la boucle");
+
+    return NULL;
+}
+
+// Envoi d'un message au serveur
+void send_message(int client_socket, char *message) {
+    send(client_socket, message, sizeof(message), 0); // Envoi du message au serveur
+    printf("Message envoyé au serveur : %s\n", message);
+}
+
 int client(const char *ip_address, int port) {
     // Création d'un socket client
     int client_socket;
@@ -31,14 +51,14 @@ int client(const char *ip_address, int port) {
     int connection_status = connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address));
     if (connection_status == -1) fprintf(stderr, "Erreur lors de l'établissement de la connexion au serveur\n\n"); // Affichage d'un message d'erreur si la connexion échoue
 
-    // Réception des données envoyées par le serveur
-    char server_response[256]; // Buffer pour stocker la réponse
-    recv(client_socket, &server_response, sizeof(server_response), 0); // Attente et réception des données
+    char message[] = "B2:A2";
+    send_message(client_socket, message);
 
-    // Affiche le résultat
-    printf("Message du serveur : %s\n", server_response);
+    pthread_t receive_thread;
+    pthread_create(&receive_thread, NULL, receive_message(client_socket), NULL);
+    //pthread_join(receive_thread, NULL);
 
     // Met fin à la connexion et ferme le socket
-    close(client_socket);
+    //close(client_socket);
     return 0;
 }
