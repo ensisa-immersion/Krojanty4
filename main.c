@@ -39,7 +39,10 @@ int main(int argc, char *argv[]) {
 
     // Démarrage du client
     printf("Démarrage du client...\n");
-    client("10.171.251.235", 5555);
+    int socket = client("10.171.251.235", 5555);
+
+    // Envoyer un message en utilisant la fonction send_message du fichier client.c
+    send_message(socket, "B2:A2");
 
     return 0;
 }
