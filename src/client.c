@@ -10,6 +10,12 @@
 
 #include "../include/client.h"
 
+/**
+ * Fonction client qui permet de se connecter à un serveur donné par son adresse IP et son port.
+ * @param ip_address Adresse IP du serveur.
+ * @param port Port du serveur.
+ * @return 0 en cas de succès, -1 en cas d'erreur.
+ */
 int client(const char *ip_address, int port) {
     // Création d'un socket client
     int client_socket;

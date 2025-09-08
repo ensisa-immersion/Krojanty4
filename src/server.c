@@ -8,10 +8,24 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
+/**
+ * Port d'écoute du serveur.
+ */
 #define PORT_SERVEUR 5555
+/**
+ * Nombre de joueurs maximum.
+ */
 #define NB_JOUEURS 2
+/**
+ * Taille maximale du buffer pour les messages.
+ */
 #define TAILLE_BUFFER 64
 
+/**
+ * Initialise une adresse sockaddr_in pour le serveur.
+ * @param adresse Pointeur vers la structure sockaddr_in a initialiser.
+ * @param port Port sur lequel le serveur écoute.
+ */
 void initialiser_adresse(struct sockaddr_in *adresse, int port) {
     adresse->sin_family = AF_INET;
     adresse->sin_addr.s_addr = INADDR_ANY;
@@ -19,6 +33,12 @@ void initialiser_adresse(struct sockaddr_in *adresse, int port) {
     printf("[DEBUG] Adresse initialisee pour le port %d\n", port);
 }
 
+/**
+ * Initialise un socket serveur.
+ * @param adresse Pointeur vers la structure sockaddr_in contenant l'adresse du serveur.
+ * @param max_conn Nombre maximum de connexions.
+ * @return Le serveur socket
+ */
 int initialiser_socket(struct sockaddr_in *adresse, int max_conn) {
     printf("[DEBUG] Creation de la socket sur le port %d...\n", ntohs(adresse->sin_port));
     int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -38,6 +58,11 @@ int initialiser_socket(struct sockaddr_in *adresse, int max_conn) {
     return sock;
 }
 
+/**
+ * Accepte une connexion entrante.
+ * @param sock Socket serveur.
+ * @return Le socket client, -1 en cas d'erreur.
+ */
 int accepter_client(int sock) {
     struct sockaddr_in adr;
     socklen_t taille = sizeof(adr);
@@ -49,10 +74,21 @@ int accepter_client(int sock) {
     return cli;
 }
 
+/**
+ * Valide si les coordonnées sont dans le format attendu.
+ * @param col Colonne (A-I).
+ * @param row Ligne (1-9).
+ * @return 1 si valide, 0 sinon.
+ */
 int coord_valide(char col, char row) {
     return (col >= 'A' && col <= 'I' && row >= '1' && row <= '9');
 }
 
+/**
+ * Valide l'entrée du joueur.
+ * @param buffer Chaîne de caractères contenant l'entrée.
+ * @return 1 si l'entrée est valide, 0 sinon.
+ */
 int entree_valide(const char *buffer) {
     // Format attendu: "A2:A3"
     if (strlen(buffer) != 5 || buffer[2] != ':')
@@ -60,7 +96,12 @@ int entree_valide(const char *buffer) {
     return coord_valide(buffer[0], buffer[1]) && coord_valide(buffer[3], buffer[4]);
 }
 
-// Interdit les déplacements en diagonale
+
+/**
+ * Vérifie si le déplacement est diagonal (interdit).
+ * @param buffer Chaîne de caractères contenant l'entrée.
+ * @return 1 si le déplacement n'est pas diagonal, 0 sinon.
+ */
 int deplacement_diagonale_interdit(const char *buffer) {
     int col1 = buffer[0] - 'A';
     int row1 = buffer[1] - '1';
@@ -70,12 +111,21 @@ int deplacement_diagonale_interdit(const char *buffer) {
     return !((col1 != col2) && (row1 != row2));
 }
 
+/**
+ * Envoie un message à un client.
+ * @param fd Descripteur de fichier du client.
+ * @param msg Message à envoyer.
+ */
 void envoyer_message(int fd, const char *msg) {
     if (fd != -1) {
         send(fd, msg, strlen(msg), 0);
     }
 }
 
+/**
+ * Point d'entrée principal du serveur.
+ * @return Code de sortie.
+ */
 int main(void) {
     int joueurs[NB_JOUEURS] = {-1, -1};
 

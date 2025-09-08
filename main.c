@@ -4,6 +4,11 @@
 
 #include "include/client.h"
 
+/**
+ * Lance le code principal du serveur.
+ * @param argc Nombre d'arguments de la ligne de commande.
+ * @param argv Tableau des arguments de la ligne de commande.
+ */
 int main(int argc, char *argv[]) {
     // Vérification des arguments
     if (argc != 3 || strcmp(argv[1], "-c") != 0) {
