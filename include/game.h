@@ -26,5 +26,6 @@ typedef struct {
 
 Game init_game(void);
 void update_board(Game* game, int dst_col, int dst_row);
+Player get_player(Piece piece);
 
 #endif // GAME_H_INCLUDED

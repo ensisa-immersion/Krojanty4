@@ -15,6 +15,13 @@ static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, 
     Game *game = data->game;
     GtkWidget *drawing_area = data->drawing_area;
 
+    // Stops if someone won
+    if (game->won) {
+        *game = init_game();
+        gtk_widget_queue_draw(drawing_area);
+        return;
+    }
+
     // Compute row/col from click
     int width  = gtk_widget_get_width(drawing_area);
     int height = gtk_widget_get_height(drawing_area);
@@ -37,6 +44,16 @@ static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, 
                 game->selected_tile[1] = col;
             }
         }
+        return;
+    }
+
+    // If a piece is already selected
+    if ((game->turn % 2 == 0 && get_player(game->board[row][col]) == P1) ||
+        (game->turn % 2 == 1 && get_player(game->board[row][col]) == P2))
+    {
+        // Change selection
+        game->selected_tile[0] = row;
+        game->selected_tile[1] = col;
         return;
     }
 

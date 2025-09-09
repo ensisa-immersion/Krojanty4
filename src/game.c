@@ -151,7 +151,7 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 Piece won(Game* game) {
     if (game->board[8][8] == P1_KING || game->board[0][0] == P2_KING) return 1;
 
-    if (game->turn >= 64) {
+    if (game->turn >= 63) {
         int counter = 0;
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {

@@ -12,43 +12,78 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     } else {
         cairo_set_source_rgb(cr, 1, 0.9, 0.9);
     }
-
     cairo_paint(cr);
-    // Center the grid
+
+
+    // Compute center coordinates
     const int grid_width = GRID_SIZE * CELL_SIZE;
     const int grid_height = GRID_SIZE * CELL_SIZE;
 
     int start_x = (width - grid_width) / 2;
     int start_y = (height - grid_height) / 2;
 
-    if (game->won != 0) {
-        const char *msg = NULL;
+    // Draw Player scores
+    int player_one_score = 0;
+    int player_two_score = 0;
 
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j ++) {
+            if (get_player(game->last_visited[i][j]) == P1) player_one_score++;
+            if (get_player(game->last_visited[i][j]) == P2) player_two_score++;
+        }
+    }
+
+    char score_text[50]; // add this at the start of draw_callback
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 20.0);
+    cairo_set_source_rgb(cr, 0, 0, 0);
+
+        // Player 1 score on the left
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_move_to(cr, start_x - 180, start_y + grid_height / 2 - 10); // first line
+    cairo_show_text(cr, "Cases Joueur 1:");
+    snprintf(score_text, sizeof(score_text), "%d", player_one_score);
+    cairo_move_to(cr, start_x - 120, start_y + grid_height / 2 + 10); // second line
+    cairo_show_text(cr, score_text);
+
+        // Player 2 score on the right
+    cairo_move_to(cr, start_x + grid_width + 40, start_y + grid_height / 2 - 10); // first line
+    cairo_show_text(cr, "Cases Joueur 2:");
+    snprintf(score_text, sizeof(score_text), "%d", player_two_score);
+    cairo_move_to(cr, start_x + grid_width + 110, start_y + grid_height / 2 + 10); // second line
+    cairo_show_text(cr, score_text);
+
+    // Text above the grid: either win message or turn number
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 32.0);
+    cairo_set_source_rgb(cr, 0, 0, 0); // Black text
+
+    char msg[100];
+
+    if (game->won != 0) {
         if (game->won == 2) {
-            msg = "It's a tie!";
+            snprintf(msg, sizeof(msg), "It's a tie!");
         } else if (game->won == 1) {
             if (game->turn % 2 == 0) {
-                msg = "Player 2 has won!";
+                snprintf(msg, sizeof(msg), "Joueur 1 a gagner!");
             } else {
-                msg = "Player 1 has won!";
+                snprintf(msg, sizeof(msg), "Joueur 2 a gagner!");
             }
         }
-
-        cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-        cairo_set_font_size(cr, 32.0);
-
-        cairo_text_extents_t extents;
-        cairo_text_extents(cr, msg, &extents);
-
-        // Center text horizontally, place it above the grid
-        double text_x = start_x + (grid_width - extents.width) / 2 - extents.x_bearing;
-        double text_y = start_y - 20; // 20px above the grid
-
-        cairo_set_source_rgb(cr, 0, 0, 0); // Black text
-        cairo_move_to(cr, text_x, text_y);
-        cairo_show_text(cr, msg);
-        cairo_stroke(cr);
+    } else {
+        snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1); // +1 if you want to start at Turn 1
     }
+
+    cairo_text_extents_t extents;
+    cairo_text_extents(cr, msg, &extents);
+
+    // Center text horizontally, place it above the grid
+    double text_x = start_x + (grid_width - extents.width) / 2 - extents.x_bearing;
+    double text_y = start_y - 20;
+
+    cairo_move_to(cr, text_x, text_y);
+    cairo_show_text(cr, msg);
+    cairo_stroke(cr);
 
 
     // Grid drawing
@@ -59,9 +94,9 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
 
             // Chooses color for house tiles
             if (i + j == 0) {
-                cairo_set_source_rgb(cr, 0, 0, 0.4);
+                cairo_set_source_rgb(cr, 0.85, 0.85, 0.90);
             } else if (i + j == 16) {
-                cairo_set_source_rgb(cr, 0.4, 0, 0);
+                cairo_set_source_rgb(cr, 0.90, 0.85, 0.85);
             } else {
                 cairo_set_source_rgb(cr, 0.9, 0.9, 0.9); // Grey by default
             }
@@ -109,6 +144,7 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     }
 }
 
+
 void activate (GtkApplication *app, gpointer user_data) {
     GtkWidget *window;
     GtkWidget *frame;
@@ -135,14 +171,10 @@ void activate (GtkApplication *app, gpointer user_data) {
 
 // From what I understood this function initializes the display by calling activate
 int initialize_display(int argc, char** argv, Game* game) {
-    // Remet les valeurs des paramètres arguments à 0
-    argc = 0;
-    argv = NULL;
-
     GtkApplication *app;
     int status;
 
-    app = gtk_application_new("krojanty.grp4", G_APPLICATION_DEFAULT_FLAGS);
+    app = gtk_application_new ("krojanty.grp4", 0);
     g_signal_connect (app, "activate", G_CALLBACK (activate), game);
     status = g_application_run (G_APPLICATION (app), argc, argv);
     g_object_unref (app);
