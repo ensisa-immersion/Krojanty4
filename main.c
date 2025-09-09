@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-
+#include <server.h>
 #include "include/client.h"
 #include "include/display.h"
 #include "include/game.h"
@@ -64,12 +64,15 @@ int main(int argc, char *argv[])
         }
 
         printf("Démarrage du serveur sur le port %d...\n", port);
+        printf("Serveur lancé (simulation, code réel en commentaire)\n");
+        /*
         int server_socket = start_server(port); // start_server à implémenter dans server.c
 
         // Connexion immédiate du client local
         int client_socket = client("127.0.0.1", port);
 
         send_message(client_socket, "B2:A2");
+        */
     }
 
     return 0;
