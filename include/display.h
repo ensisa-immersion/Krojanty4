@@ -8,7 +8,7 @@
 #define CELL_SIZE 40
 
 void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data);
-void activate (GtkApplication *app, gpointer user_data);
-int initialize_display(int argc, char** argv, Game* game);
+void activate(GtkApplication *app, gpointer user_data);
+int initialize_display(int argc, char **argv, Game *game);
 
 #endif // DISPLAY_H_INCLUDED

@@ -10,7 +10,8 @@
  * Structure représentant un déplacement utilisateur.
  * Cela permet de savoir dans quel direction, de combien de cases, un pion va être déplacé.
  */
-struct user_move_s {
+struct user_move_s
+{
     int delta_x; // changement en x (ligne)
     int delta_y; // changement en y (colonne)
 };
@@ -55,7 +56,6 @@ user_move parse_move(const char *buffer)
     move.delta_y = (buffer[4] - '1') - (buffer[1] - '1'); // ligne
     return move;
 }
-
 
 /**
  * Vérifie si le déplacement est diagonal (interdit).
