@@ -66,3 +66,9 @@ int client(const char *ip_address, int port) {
 
     return 0;
 }
+
+int main(void) {
+    // Exemple d’appel
+    client("127.0.0.1", 5555);
+    return 0;
+}

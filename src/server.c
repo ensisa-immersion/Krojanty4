@@ -7,11 +7,11 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
-#include <poll.h>
 
 #define PORT_SERVEUR 5555
 #define TAILLE_BUFFER 64
 
+/* ----- Initialisation de l'adresse et de la socket ----- */
 void initialiser_adresse(struct sockaddr_in *adresse, int port) {
     adresse->sin_family = AF_INET;
     adresse->sin_addr.s_addr = INADDR_ANY;
@@ -60,6 +60,7 @@ int accepter_client(int sock) {
     return cli;
 }
 
+/* ----- Validation des coups ----- */
 int coord_valide(char col, char row) {
     return (col >= 'A' && col <= 'I' && row >= '1' && row <= '9');
 }
@@ -69,7 +70,6 @@ int entree_valide(const char *buffer) {
     while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r')) {
         len--;
     }
-    
     if (len != 5 || buffer[2] != ':') return 0;
     return coord_valide(buffer[0], buffer[1]) && coord_valide(buffer[3], buffer[4]);
 }
@@ -80,21 +80,15 @@ int deplacement_valide(const char *buffer) {
     int col2 = buffer[3] - 'A';
     int row2 = buffer[4] - '1';
     
-    if ((col1 != col2) && (row1 != row2)) {
-        return 0; // diagonal interdit
-    }
-    
-    if (col1 == col2 && row1 == row2) {
-        return 0; // pas de mouvement
-    }
-    
+    if ((col1 != col2) && (row1 != row2)) return 0; // diagonal interdit
+    if (col1 == col2 && row1 == row2) return 0;       // pas de mouvement
     return 1;
 }
 
+/* ----- Communication avec le client ----- */
 void envoyer_message_client(int fd, const char *msg) {
     if (fd == -1) return;
     
-    printf("[DEBUG] Envoi au client: '%s'", msg);
     size_t total_sent = 0;
     size_t msg_len = strlen(msg);
     
@@ -116,7 +110,6 @@ int lire_message_client(int fd, char *buffer, int max_size) {
     int recu = recv(fd, buffer, max_size - 1, 0);
     if (recu > 0) {
         buffer[recu] = '\0';
-        // Enlever les retours à la ligne
         int len = strlen(buffer);
         while (len > 0 && (buffer[len-1] == '\n' || buffer[len-1] == '\r')) {
             buffer[--len] = '\0';
@@ -126,129 +119,79 @@ int lire_message_client(int fd, char *buffer, int max_size) {
     return recu;
 }
 
-int lire_entree_serveur(char *buffer, int max_size) {
-    // Vérifier si il y a une entrée disponible sur stdin
-    struct pollfd pfd;
-    pfd.fd = STDIN_FILENO;
-    pfd.events = POLLIN;
-    
-    int ret = poll(&pfd, 1, 0); // Non-bloquant
-    if (ret > 0 && (pfd.revents & POLLIN)) {
-        if (fgets(buffer, max_size, stdin) != NULL) {
-            // Enlever le \n
-            int len = strlen(buffer);
-            if (len > 0 && buffer[len-1] == '\n') {
-                buffer[len-1] = '\0';
-                len--;
-            }
-            return len;
-        }
+/* ----- Joueur 1 : fonction appelée depuis GUI ----- */
+int joueur1_joue(int client_fd, const char *coup, int *tour) {
+    if (!entree_valide(coup)) {
+        printf("[ERREUR] Coup invalide (format)\n");
+        return 0;
     }
-    return 0; // Pas d'entrée disponible
+    if (!deplacement_valide(coup)) {
+        printf("[ERREUR] Coup invalide (déplacement)\n");
+        return 0;
+    }
+
+    printf("[OK] Joueur 1 a joué: %s\n", coup);
+
+    if (client_fd != -1) {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Joueur 1 a joué: %s\nVotre tour!\n", coup);
+        envoyer_message_client(client_fd, msg);
+    }
+
+    *tour = 1; // Passe au joueur 2
+    return 1;
 }
 
+/* ----- Boucle principale ----- */
 int main(void) {
     int client_joueur2 = -1;
-    int partie_en_cours = 0;
-    int tour = 0; // 0 = Serveur (Joueur 1), 1 = Client (Joueur 2)
+    int partie_en_cours = 1;
+    int tour = 0; // 0 = Joueur 1, 1 = Joueur 2
 
     struct sockaddr_in adr_serv;
     initialiser_adresse(&adr_serv, PORT_SERVEUR);
     int sock_serv = initialiser_socket(&adr_serv, 1);
 
-    printf("=== SERVEUR DE JEU - VOUS ÊTES LE JOUEUR 1 ===\n");
+    printf("=== SERVEUR DE JEU - JOUEUR 1 ===\n");
     printf("[INFO] Serveur en écoute sur le port %d\n", PORT_SERVEUR);
     printf("[INFO] Attente de la connexion du joueur 2...\n");
 
-    char buffer[TAILLE_BUFFER + 1];
-
-    // Attendre la connexion du joueur 2
+    // Attente connexion joueur 2
     while (client_joueur2 == -1) {
         int cli = accepter_client(sock_serv);
         if (cli != -1) {
             client_joueur2 = cli;
             envoyer_message_client(client_joueur2, "Bienvenue! Vous êtes le joueur 2.\n");
             printf("[INFO] Joueur 2 connecté! La partie peut commencer.\n");
-            partie_en_cours = 1;
         }
         usleep(100000);
     }
 
-    printf("\n=== DÉBUT DE LA PARTIE ===\n");
-    printf("Format des coups: A2:A3 (de A2 vers A3)\n");
-    printf("C'est votre tour (Joueur 1)! Entrez votre coup: ");
-    fflush(stdout);
-    
-    envoyer_message_client(client_joueur2, "La partie commence! Attendez votre tour.\n");
+    char buffer[TAILLE_BUFFER + 1];
 
-    // Boucle de jeu principale
+    // --- Test sans GUI : joueur 1 joue une seule fois ---
+    joueur1_joue(client_joueur2, "A2:A3", &tour);
+
+    // Boucle de jeu
     while (partie_en_cours) {
         if (tour == 0) {
-            // Tour du serveur (Joueur 1)
-            int entree_recue = lire_entree_serveur(buffer, TAILLE_BUFFER);
-            
-            if (entree_recue > 0) {
-                printf("\n[INFO] Vous avez joué: %s\n", buffer);
-                
-                if (!entree_valide(buffer)) {
-                    printf("[ERREUR] Format invalide! Utilisez: A2:A3\n");
-                    printf("Votre tour (Joueur 1): ");
-                    fflush(stdout);
-                } else if (!deplacement_valide(buffer)) {
-                    printf("[ERREUR] Déplacement invalide! (pas de diagonal/mouvement nul)\n");
-                    printf("Votre tour (Joueur 1): ");
-                    fflush(stdout);
-                } else {
-                    // Coup valide
-                    printf("[OK] Coup accepté!\n");
-                    
-                    // Notifier le client
-                    if (client_joueur2 != -1) {
-                        char msg_client[128];
-                        snprintf(msg_client, sizeof(msg_client), 
-                                "Joueur 1 a joué: %s\nVotre tour!\n", buffer);
-                        envoyer_message_client(client_joueur2, msg_client);
-                    }
-                    
-                    // Passer au tour suivant
-                    tour = 1;
-                    printf("Attente du coup du joueur 2...\n");
-                }
-            }
+            // Tour du joueur 1
+            // Attente de l'appel depuis la GUI
         } else {
-            // Tour du client (Joueur 2)
-            if (client_joueur2 == -1) {
-                printf("[WARN] Joueur 2 déconnecté, attente de reconnexion...\n");
-                
-                int cli = accepter_client(sock_serv);
-                if (cli != -1) {
-                    client_joueur2 = cli;
-                    envoyer_message_client(client_joueur2, "Reconnecté! C'est votre tour.\n");
-                    printf("[INFO] Joueur 2 reconnecté.\n");
-                }
-                usleep(100000);
-                continue;
-            }
-
+            // Tour du joueur 2
             int recu = lire_message_client(client_joueur2, buffer, TAILLE_BUFFER);
             
             if (recu > 0) {
                 printf("[INFO] Joueur 2 a joué: %s\n", buffer);
-                
+
                 if (!entree_valide(buffer)) {
-                    envoyer_message_client(client_joueur2, "Format invalide! Utilisez: A2:A3\n");
+                    envoyer_message_client(client_joueur2, "Format invalide! Utilisez A2:A3\n");
                 } else if (!deplacement_valide(buffer)) {
                     envoyer_message_client(client_joueur2, "Déplacement invalide!\n");
                 } else {
-                    // Coup valide
                     envoyer_message_client(client_joueur2, "Coup accepté! Attendez...\n");
-                    
-                    printf("[OK] Coup du joueur 2 accepté.\n");
-                    printf("C'est votre tour (Joueur 1)! Entrez votre coup: ");
-                    fflush(stdout);
-                    
-                    // Passer au tour suivant
-                    tour = 0;
+                    printf("[OK] Coup joueur 2 accepté.\n");
+                    tour = 0; // Retour au joueur 1
                 }
             } else if (recu == 0) {
                 printf("[WARN] Joueur 2 s'est déconnecté.\n");
@@ -256,19 +199,14 @@ int main(void) {
                 client_joueur2 = -1;
             } else if (recu < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
                 perror("recv");
-                printf("[ERROR] Erreur avec le joueur 2.\n");
                 close(client_joueur2);
                 client_joueur2 = -1;
             }
         }
-        
-        usleep(50000); // 50ms pour éviter une boucle trop rapide
+        usleep(50000);
     }
 
-    // Nettoyage
-    if (client_joueur2 != -1) {
-        close(client_joueur2);
-    }
+    if (client_joueur2 != -1) close(client_joueur2);
     close(sock_serv);
     return 0;
 }
