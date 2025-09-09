@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include <server.h>
+
+#include "include/server.h"
 #include "include/client.h"
 #include "include/display.h"
 #include "include/game.h"
@@ -23,7 +24,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Game game = init_game();               // Initializes game
+    Game game = init_game();               // Initializes game_1
     initialize_display(argc, argv, &game); // Initializes display and also initializes click listener
 
     if (strcmp(argv[1], "-c") == 0)

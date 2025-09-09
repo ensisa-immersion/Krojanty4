@@ -1,11 +1,11 @@
 #include <math.h>
-#include "game.h"
-#include "display.h"
+#include "../include/game.h"
+#include "../include/display.h"
 
-// Initialize the game to play
+// Initialize the game_1 to play
 Game init_game(void) {
     Game game;
-    // Read enum in game.h to understand what number is which piece
+    // Read enum in game_1.h to understand what number is which piece
     Piece starting_board[9][9] = { {0, 0, 1, 1, 0, 0, 0, 0, 0},
                                    {0, 3, 1, 1, 0, 0, 0, 0, 0},
                                    {1, 1, 1, 0, 0, 0, 0, 0, 0},

@@ -72,7 +72,7 @@ void activate(GtkApplication *app, gpointer user_data)
     GtkWidget *window;
     GtkWidget *frame;
 
-    // Gets the game struct from the data slot that gtk offers (on le passe au black quoi)
+    // Gets the game_1 struct from the data slot that gtk offers (on le passe au black quoi)
     Game *game = (Game *)user_data;
 
     // Makes a window
