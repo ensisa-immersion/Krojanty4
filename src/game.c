@@ -116,7 +116,7 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
     // Eats if sprint towards opponent without one behind him defending or when sandwiched
     if (top == opponent) {
         if ( ((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP ) ||
-              (game->board[row - 2][col] == player) )  {
+              (game->board[row - 2][col] == player && row - 2 >= 0) )  {
             game->board[row - 1][col] = P_NONE;
             game->last_visited[row - 1][col] = P_NONE;
         }
@@ -124,7 +124,7 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
     if (left == opponent) {
         if ( ((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT ) ||
-              (game->board[row][col - 2] == player) ) {
+              (game->board[row][col - 2] == player && col - 2 >= 0) ) {
             game->board[row][col - 1] = P_NONE;
             game->last_visited[row][col - 1] = P_NONE;
         }
@@ -132,7 +132,7 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
     if (right == opponent) {
         if ( ((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT ) ||
-              (game->board[row][col + 2] == player) ) {
+              (game->board[row][col + 2] == player && col + 2 <= 8) ) {
             game->board[row][col + 1] = P_NONE;
             game->last_visited[row][col + 1] = P_NONE;
         }
@@ -140,7 +140,7 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
     if (down == opponent) {
         if ( ((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN ) ||
-              (game->board[row + 2][col] == player) ) {
+              (game->board[row + 2][col] == player && row + 2 <= 8) ) {
             game->board[row + 1][col] = P_NONE;
             game->last_visited[row + 1][col] = P_NONE;
         }
