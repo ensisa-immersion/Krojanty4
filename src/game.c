@@ -85,6 +85,7 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     return 1; // Move is legal
 }
 
+// Direction that helps check if a pawn should be eaten
 typedef enum {
     DIR_NONE = 0,
     DIR_TOP,
@@ -94,43 +95,92 @@ typedef enum {
 } Direction;
 
 
+// Returns player based on tile
+Player get_player(Piece piece) {
+    if (piece == P1_PAWN || piece == P1_KING) return P1;
+    if (piece == P2_PAWN || piece == P2_KING) return P2;
+    return NOT_PLAYER;
+}
+
 // Helper function to assure pawns are eating eachother
 void did_eat(Game* game, int row, int col, Direction sprint_direction) {
-    Piece opponent = (game->turn % 2 == 0) ? P2_PAWN : P1_PAWN;
-    Piece player = (game->turn % 2 == 1) ? P2_PAWN : P1_PAWN;
+    Player opponent = (game->turn % 2 == 0) ? P2 : P1;
+    Player player = (game->turn % 2 == 1) ? P2 : P1;
 
-    Piece top = (row - 1 >= 0)? game->board[row - 1][col] : P_NONE;
-    Piece left = (col - 1 >= 0)? game->board[row][col - 1] : P_NONE;
-    Piece right = (col + 1 <= 8)? game->board[row][col + 1] : P_NONE;
-    Piece down = (row + 1 <= 8)? game->board[row + 1][col] : P_NONE;
+    Player top = (row - 1 >= 0)? get_player(game->board[row - 1][col]) : NOT_PLAYER;
+    Player left = (col - 1 >= 0)? get_player(game->board[row][col - 1]) : NOT_PLAYER;
+    Player right = (col + 1 <= 8)? get_player(game->board[row][col + 1]) : NOT_PLAYER;
+    Player down = (row + 1 <= 8)? get_player(game->board[row + 1][col]) : NOT_PLAYER;
 
 
     // Eats if sprint towards opponent without one behind him defending or when sandwiched
     if (top == opponent) {
-        if ( ((row - 2 < 0 || game->board[row - 2][col] != opponent) && sprint_direction == DIR_TOP ) ||
+        if ( ((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP ) ||
               (game->board[row - 2][col] == player) )  {
             game->board[row - 1][col] = P_NONE;
             game->last_visited[row - 1][col] = P_NONE;
         }
-    } else if (left == opponent) {
-        if ( ((col - 2 < 0 || game->board[row][col - 2] != opponent) && sprint_direction == DIR_LEFT ) ||
+    }
+
+    if (left == opponent) {
+        if ( ((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT ) ||
               (game->board[row][col - 2] == player) ) {
             game->board[row][col - 1] = P_NONE;
             game->last_visited[row][col - 1] = P_NONE;
         }
-    } else if (right == opponent) {
-        if ( ((col + 2 > 8 || game->board[row][col + 2] != opponent) && sprint_direction == DIR_RIGHT ) ||
+    }
+
+    if (right == opponent) {
+        if ( ((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT ) ||
               (game->board[row][col + 2] == player) ) {
             game->board[row][col + 1] = P_NONE;
             game->last_visited[row][col + 1] = P_NONE;
         }
-    } else if (down == opponent) {
-        if ( ((row + 2 > 8 || game->board[row + 2][col] != opponent) && sprint_direction == DIR_DOWN ) ||
+    }
+
+    if (down == opponent) {
+        if ( ((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN ) ||
               (game->board[row + 2][col] == player) ) {
             game->board[row + 1][col] = P_NONE;
             game->last_visited[row + 1][col] = P_NONE;
         }
     }
+}
+
+
+Piece won(Game* game) {
+    if (game->board[8][8] == P1_KING || game->board[0][0] == P2_KING) return 1;
+
+    if (game->turn >= 64) {
+        int counter = 0;
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (game->last_visited[i][j] == P1_KING || game->last_visited[i][j] == P1_PAWN) counter++;
+                if (game->last_visited[i][j] == P2_KING || game->last_visited[i][j] == P2_PAWN) counter--;
+            }
+        }
+
+        if (counter != 0) {
+            return 1;
+        } else {
+            return 8;
+        }
+    }
+
+    int is_blue_king_alive = 0;
+    int is_red_king_alive = 0;
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (game->board[i][j] == P1_KING) is_blue_king_alive++;
+            if (game->board[i][j] == P2_KING) is_red_king_alive++;
+        }
+    }
+
+    if (!is_blue_king_alive || !is_red_king_alive) {
+        return 1;
+    }
+
+    return 0;
 }
 
 

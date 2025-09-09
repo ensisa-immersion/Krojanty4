@@ -2,6 +2,12 @@
 #define GAME_H_INCLUDED
 
 typedef enum {
+    NOT_PLAYER = 0,
+    P1,
+    P2
+} Player;
+
+typedef enum {
     P_NONE = 0,
     P1_PAWN,
     P2_PAWN,
