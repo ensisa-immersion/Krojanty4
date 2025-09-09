@@ -1,6 +1,6 @@
 #include <math.h>
-#include "game.h"
-#include "display.h"
+#include "../include/game.h"
+#include "../include/display.h"
 
 // Initialize the game to play
 Game init_game(void) {

@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
-#include "display.h"
-#include "game.h"
-#include "input.h"
+#include "../include/display.h"
+#include "../include/game.h"
+#include "../include/input.h"
 
 void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data) {
     Game* game = (Game*) user_data;
@@ -107,6 +107,10 @@ void activate (GtkApplication *app, gpointer user_data) {
 
 // From what I understood this function initializes the display by calling activate
 int initialize_display(int argc, char** argv, Game* game) {
+    // Remet les valeurs des paramètres arguments à 0
+    argc = 0;
+    argv = NULL;
+
     GtkApplication *app;
     int status;
 

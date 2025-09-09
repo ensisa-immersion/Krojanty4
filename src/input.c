@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
-#include "input.h"
-#include "game.h"
-#include "display.h"
+#include "../include/input.h"
+#include "../include/game.h"
+#include "../include/display.h"
 
 // Struct that bundles all the information needed to correctly predict input row and column
 struct input_information {
