@@ -1,12 +1,10 @@
 #include <gtk/gtk.h>
+#include "display.h"
+#include "game.h"
+#include "input.h"
 
-#include "../include/display.h"
-#include "../include/game.h"
-#include "../include/input.h"
-
-void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data)
-{
-    Game *game = (Game *)user_data;
+void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data) {
+    Game* game = (Game*) user_data;
 
     const int grid_width = GRID_SIZE * CELL_SIZE;
     const int grid_height = GRID_SIZE * CELL_SIZE;
@@ -16,48 +14,63 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     int start_y = (height - grid_height) / 2;
 
     // Background
-    cairo_set_source_rgb(cr, 1, 1, 1);
+    if (game->turn % 2 == 0) {
+        cairo_set_source_rgb(cr, 0.8, 0.9, 1);
+    } else {
+        cairo_set_source_rgb(cr, 1, 0.9, 0.9);
+    }
+
     cairo_paint(cr);
 
     // Grid drawing
-    for (int i = 0; i < GRID_SIZE; i++)
-    {
-        for (int j = 0; j < GRID_SIZE; j++)
-        {
-            int tile = game->board[i][j];
-
-            // Chooses color according to player on tile
-            switch (tile)
-            {
-            case 1:
-                cairo_set_source_rgb(cr, 0.1, 0.7, 0.8); // Blue for player 1 pawns
-                break;
-            case 2:
-                cairo_set_source_rgb(cr, 0.9, 0.2, 0); // Red for player 2 pawns
-                break;
-            case 4:
-                cairo_set_source_rgb(cr, 0.1, 0.4, 0.5); // Dark blue for player 1's king
-                break;
-            case 5:
-                cairo_set_source_rgb(cr, 0.5, 0.2, 0.1); // Dark red for player 2's king
-                break;
-            default:
-                cairo_set_source_rgb(cr, 0.9, 0.9, 0.9); // Grey by default
-                break;
-            }
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            int tile = game->board[j][i];
+            int visited = game->last_visited[j][i];
 
             // Chooses color for house tiles
-            if (i + j == 0)
-            {
-                cairo_set_source_rgb(cr, 0, 0, 1);
-            }
-            else if (i + j == 16)
-            {
-                cairo_set_source_rgb(cr, 1, 0, 0);
+            if (i + j == 0) {
+                cairo_set_source_rgb(cr, 0, 0, 0.4);
+            } else if (i + j == 16) {
+                cairo_set_source_rgb(cr, 0.4, 0, 0);
+            } else {
+                cairo_set_source_rgb(cr, 0.9, 0.9, 0.9); // Grey by default
             }
 
+            switch (visited) {
+            case P1_PAWN:
+                cairo_set_source_rgb(cr, 0.85, 0.95, 1); // Blue for player 1 pawns
+                break;
+            case P2_PAWN:
+                cairo_set_source_rgb(cr, 1, 0.85, 0.85); // Red for player 2 pawns
+                break;
+            case P1_KING:
+                cairo_set_source_rgb(cr, 0.8, 0.8, 1); // Dark blue for player 1's king
+                break;
+            case P2_KING:
+                cairo_set_source_rgb(cr, 1, 0.8, 0.8); // Dark red for player 2's king
+                break;
+            }
+
+            // Chooses color according to player on tile
+            switch (tile) {
+            case P1_PAWN:
+                cairo_set_source_rgb(cr, 0.1, 0.7, 0.8); // Blue for player 1 pawns
+                break;
+            case P2_PAWN:
+                cairo_set_source_rgb(cr, 0.95, 0.3, 0.1); // Red for player 2 pawns
+                break;
+            case P1_KING:
+                cairo_set_source_rgb(cr, 0.1, 0.4, 0.5); // Dark blue for player 1's king
+                break;
+            case P2_KING:
+                cairo_set_source_rgb(cr, 0.7, 0.2, 0.1); // Dark red for player 2's king
+                break;
+            }
+
+
             cairo_rectangle(cr, start_x + i * CELL_SIZE, start_y + j * CELL_SIZE, CELL_SIZE, CELL_SIZE); // Creer le rectangle
-            cairo_fill_preserve(cr);                                                                     // Colorier rectangle
+            cairo_fill_preserve(cr); // Colorier rectangle
 
             // Dessiner contour du rectangle
             cairo_set_source_rgb(cr, 0, 0, 0);
@@ -67,44 +80,40 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     }
 }
 
-void activate(GtkApplication *app, gpointer user_data)
-{
+
+void activate (GtkApplication *app, gpointer user_data) {
     GtkWidget *window;
     GtkWidget *frame;
 
-    // Gets the game_1 struct from the data slot that gtk offers (on le passe au black quoi)
-    Game *game = (Game *)user_data;
+    // Gets the game struct from the data slot that gtk offers (on le passe au black quoi)
+    Game* game = (Game*) user_data;
 
     // Makes a window
-    window = gtk_application_window_new(app);
-    gtk_window_set_title(GTK_WINDOW(window), "Krojanty");
-    gtk_window_set_default_size(GTK_WINDOW(window), 800, 500);
+    window = gtk_application_window_new (app);
+    gtk_window_set_title (GTK_WINDOW (window), "Krojanty");
+    gtk_window_set_default_size (GTK_WINDOW (window), 800, 500);
 
     // Creates drawing space
     frame = gtk_drawing_area_new();
     gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(frame), draw_callback, game, NULL);
 
     // Starts listening to user input
-    detect_click(frame, game); // Should be in main.c in the futur
+    detect_click(frame, game); // Should be in main.c in the future but flemme
 
     gtk_window_set_child(GTK_WINDOW(window), frame);
-    gtk_window_present(GTK_WINDOW(window));
+    gtk_window_present (GTK_WINDOW (window));
 }
 
+
 // From what I understood this function initializes the display by calling activate
-int initialize_display(int argc, char **argv, Game *game)
-{
+int initialize_display(int argc, char** argv, Game* game) {
     GtkApplication *app;
     int status;
 
-    // Remet les valeurs des paramètres arguments à 0
-    argc = 0;
-    argv = NULL;
-
-    app = gtk_application_new("krojanty.grp4", G_APPLICATION_DEFAULT_FLAGS);
-    g_signal_connect(app, "activate", G_CALLBACK(activate), game);
-    status = g_application_run(G_APPLICATION(app), argc, argv);
-    g_object_unref(app);
+    app = gtk_application_new ("krojanty.grp4", G_APPLICATION_DEFAULT_FLAGS);
+    g_signal_connect (app, "activate", G_CALLBACK (activate), game);
+    status = g_application_run (G_APPLICATION (app), argc, argv);
+    g_object_unref (app);
 
     return status;
 }
