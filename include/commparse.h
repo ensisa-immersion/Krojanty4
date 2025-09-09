@@ -1,18 +1,12 @@
-#ifndef CELL_RANGE_H
-#define CELL_RANGE_H
+#ifndef COMMPARSE_H
+#define COMMPARSE_H
 
-typedef struct {
-    int col;  // 1 to 9 (A=1, ..., I=9)
-    int row;  // 1 to 9
-} Cell;
+// Parse une range et retourne un tableau [x1, y1, x2, y2]
+// coordinates doit être un tableau de 4 entiers alloué par l'appelant
+// Retourne 0 en cas de succès, -1 en cas d'erreur
+int parse_cell_range_to_array(const char *text, int coordinates[4]);
 
-typedef struct {
-    Cell from;
-    Cell to;
-} CellRange;
+// Fonction utilitaire pour afficher les coordonnées au format [[x1,y1],[x2,y2]]
+void print_coordinates_2d_format(int coordinates[4]);
 
-// Parse a range string like "A2:C2" or "E4:E8" into a CellRange struct.
-// Returns 0 on success, -1 on error (bad format).
-int parse_cell_range(const char *text, CellRange *out);
-
-#endif // CELL_RANGE_H
+#endif // COMMPARSE_H
