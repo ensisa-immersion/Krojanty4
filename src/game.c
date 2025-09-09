@@ -168,8 +168,8 @@ void update_board(Game *game, int dst_row, int dst_col) {
         did_eat(game, dst_row, dst_col, direction);
 
         // Handle wins
-        int has_won = won(game);
-        if ()
+        // int has_won = won(game);
+        // if ()
 
         // Advance turn
         game->turn++;
