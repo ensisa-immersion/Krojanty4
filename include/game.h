@@ -26,6 +26,5 @@ typedef struct {
 
 Game init_game(void);
 void update_board(Game* game, int dst_col, int dst_row);
-int turn_order(Game* game);
 
 #endif // GAME_H_INCLUDED
