@@ -93,11 +93,6 @@ typedef enum {
     DIR_DOWN
 } Direction;
 
-int turn_order(Game* game) {
-    Piece player = (game->turn % 2 == 0) ? P1_PAWN : P2_PAWN;
-
-    return player;
-}
 
 // Helper function to assure pawns are eating eachother
 void did_eat(Game* game, int row, int col, Direction sprint_direction) {
@@ -111,27 +106,27 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
 
     // Eats if sprint towards opponent without one behind him defending or when sandwiched
-    if (top != turn_order(game)) {
-        if ( ((row - 2 < 0 || game->board[row - 2][col] == turn_order(game)) && sprint_direction == DIR_TOP ) ||
-              (game->board[row - 2][col] == turn_order(game)) )  {
+    if (top == opponent) {
+        if ( ((row - 2 < 0 || game->board[row - 2][col] != opponent) && sprint_direction == DIR_TOP ) ||
+              (game->board[row - 2][col] == player) )  {
             game->board[row - 1][col] = P_NONE;
             game->last_visited[row - 1][col] = P_NONE;
         }
-    } else if (left != turn_order(game)) {
-        if ( ((col - 2 < 0 || game->board[row][col - 2] == turn_order(game)) && sprint_direction == DIR_LEFT ) ||
-              (game->board[row][col - 2] == turn_order(game)) ) {
+    } else if (left == opponent) {
+        if ( ((col - 2 < 0 || game->board[row][col - 2] != opponent) && sprint_direction == DIR_LEFT ) ||
+              (game->board[row][col - 2] == player) ) {
             game->board[row][col - 1] = P_NONE;
             game->last_visited[row][col - 1] = P_NONE;
         }
-    } else if (right != turn_order(game)) {
-        if ( ((col + 2 > 8 || game->board[row][col + 2] == turn_order(game)) && sprint_direction == DIR_RIGHT ) ||
-              (game->board[row][col + 2] == turn_order(game)) ) {
+    } else if (right == opponent) {
+        if ( ((col + 2 > 8 || game->board[row][col + 2] != opponent) && sprint_direction == DIR_RIGHT ) ||
+              (game->board[row][col + 2] == player) ) {
             game->board[row][col + 1] = P_NONE;
             game->last_visited[row][col + 1] = P_NONE;
         }
-    } else if (down != turn_order(game)) {
-        if ( ((row + 2 > 8 || game->board[row + 2][col] == turn_order(game)) && sprint_direction == DIR_DOWN ) ||
-              (game->board[row + 2][col] == turn_order(game)) ) {
+    } else if (down == opponent) {
+        if ( ((row + 2 > 8 || game->board[row + 2][col] != opponent) && sprint_direction == DIR_DOWN ) ||
+              (game->board[row + 2][col] == player) ) {
             game->board[row + 1][col] = P_NONE;
             game->last_visited[row + 1][col] = P_NONE;
         }
@@ -155,13 +150,13 @@ void update_board(Game *game, int dst_row, int dst_col) {
         Piece last_piece = game->board[dst_row][dst_col];
         game->last_visited[dst_row][dst_col] = last_piece;
 
-        // Advance turn and check if someone was eaten
+        // Check if someone was eaten
         Direction direction;
         if (dst_row != src_row) {
             if (dst_row > src_row) {
-                direction = DIR_TOP;
-            } else {
                 direction = DIR_DOWN;
+            } else {
+                direction = DIR_TOP;
             }
         } else if (dst_col != dst_row) {
             if (dst_col > src_col) {
@@ -171,6 +166,12 @@ void update_board(Game *game, int dst_row, int dst_col) {
             }
         }
         did_eat(game, dst_row, dst_col, direction);
+
+        // Handle wins
+        int has_won = won(game);
+        if ()
+
+        // Advance turn
         game->turn++;
 
         // Reset selection
@@ -178,3 +179,4 @@ void update_board(Game *game, int dst_row, int dst_col) {
         game->selected_tile[1] = -1;
     }
 }
+
