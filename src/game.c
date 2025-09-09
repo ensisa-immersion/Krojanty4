@@ -33,7 +33,20 @@ Game init_game(void) {
 }
 
 
-// Helper function that determines if a move is legal
+/**
+ * Vérifie si un déplacement est légal selon les règles du jeu.
+ * C'est à dire :
+ * - La destination est dans les limites du plateau.
+ * - La destination n'est pas occupée par une pièce du même joueur.
+ * - Le déplacement est en ligne droite (horizontal ou vertical).
+ * - Le chemin entre la source et la destination n'est pas bloqué par d'autres pièces
+ * @param game Pointeur vers la structure de jeu contenant l'état actuel du plateau et le tour.
+ * @param src_row Ligne source (0-8).
+ * @param src_col Colonne source (0-8).
+ * @param dst_row Ligne destination (0-8).
+ * @param dst_col Colonne destination (0-8).
+ * @return 1 si le déplacement est légal, sinon 0.
+ */
 int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col) {
     if (src_row < 0 || src_row >= GRID_SIZE || src_col < 0 || src_col >= GRID_SIZE) return 0;
     if (dst_row < 0 || dst_row >= GRID_SIZE || dst_col < 0 || dst_col >= GRID_SIZE) return 0;
