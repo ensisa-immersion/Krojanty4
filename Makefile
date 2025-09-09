@@ -20,7 +20,7 @@ docs:
 	doxygen docs/Doxyfile
 
 compile:
-	gcc main.c src/*.c -o ./build/game $(pkg-config --cflags --libs gtk4) -lpthread -I.
+	gcc main.c src/*.c -o ./build/game $(shell pkg-config --cflags --libs gtk4) -lpthread -I.
 
 help:
 	@echo "$$HELP_BODY"
