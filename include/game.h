@@ -1,7 +1,8 @@
 #ifndef GAME_H_INCLUDED
 #define GAME_H_INCLUDED
 
-typedef enum {
+typedef enum
+{
     P_NONE = 0,
     P1_PAWN,
     P2_PAWN,
@@ -9,7 +10,8 @@ typedef enum {
     P2_KING
 } Piece;
 
-typedef struct {
+typedef struct
+{
     int won;
     int turn;
     int selected_tile[2];
@@ -19,6 +21,6 @@ typedef struct {
 } Game;
 
 Game init_game(void);
-void update_board(Game* game, int dst_col, int dst_row);
+void update_board(Game *game, int dst_col, int dst_row);
 
 #endif // GAME_H_INCLUDED
