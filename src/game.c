@@ -86,8 +86,8 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
     Piece top = (row - 1 >= 0)? game->board[row - 1][col] : P_NONE;
     Piece left = (col - 1 >= 0)? game->board[row][col - 1] : P_NONE;
-    Piece right = (col + 1 <= 9)? game->board[row][col + 1] : P_NONE;
-    Piece down = (row + 1 <= 9)? game->board[row + 1][col] : P_NONE;
+    Piece right = (col + 1 <= 8)? game->board[row][col + 1] : P_NONE;
+    Piece down = (row + 1 <= 8)? game->board[row + 1][col] : P_NONE;
 
     if (top == opponent && sprint_direction == DIR_TOP) {
         if (row - 2 < 0 || game->board[row - 2][col] != opponent) {
@@ -100,12 +100,12 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
             game->last_visited[row][col - 1] = P_NONE;
         }
     } else if (right == opponent && sprint_direction == DIR_RIGHT) {
-        if (col + 2 > 9 || game->board[row][col + 2] != opponent) {
+        if (col + 2 > 8 || game->board[row][col + 2] != opponent) {
             game->board[row][col + 1] = P_NONE;
             game->last_visited[row][col + 1] = P_NONE;
         }
     } else if (down == opponent && sprint_direction == DIR_DOWN) {
-        if (row + 2 > 9 || game->board[row + 2][col] != opponent) {
+        if (row + 2 > 8 || game->board[row + 2][col] != opponent) {
             game->board[row + 1][col] = P_NONE;
             game->last_visited[row + 1][col] = P_NONE;
         }
