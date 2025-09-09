@@ -6,13 +6,6 @@
 void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data) {
     Game* game = (Game*) user_data;
 
-    const int grid_width = GRID_SIZE * CELL_SIZE;
-    const int grid_height = GRID_SIZE * CELL_SIZE;
-
-    // Center the grid
-    int start_x = (width - grid_width) / 2;
-    int start_y = (height - grid_height) / 2;
-
     // Background
     if (game->turn % 2 == 0) {
         cairo_set_source_rgb(cr, 0.8, 0.9, 1);
@@ -21,6 +14,42 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     }
 
     cairo_paint(cr);
+    // Center the grid
+    const int grid_width = GRID_SIZE * CELL_SIZE;
+    const int grid_height = GRID_SIZE * CELL_SIZE;
+
+    int start_x = (width - grid_width) / 2;
+    int start_y = (height - grid_height) / 2;
+
+    if (game->won != 0) {
+        const char *msg = NULL;
+
+        if (game->won == 2) {
+            msg = "It's a tie!";
+        } else if (game->won == 1) {
+            if (game->turn % 2 == 0) {
+                msg = "Player 2 has won!";
+            } else {
+                msg = "Player 1 has won!";
+            }
+        }
+
+        cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+        cairo_set_font_size(cr, 32.0);
+
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, msg, &extents);
+
+        // Center text horizontally, place it above the grid
+        double text_x = start_x + (grid_width - extents.width) / 2 - extents.x_bearing;
+        double text_y = start_y - 20; // 20px above the grid
+
+        cairo_set_source_rgb(cr, 0, 0, 0); // Black text
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, msg);
+        cairo_stroke(cr);
+    }
+
 
     // Grid drawing
     for (int i = 0; i < GRID_SIZE; i++) {
@@ -79,7 +108,6 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
         }
     }
 }
-
 
 void activate (GtkApplication *app, gpointer user_data) {
     GtkWidget *window;
