@@ -1,11 +1,11 @@
 #include <math.h>
-#include "../include/game.h"
-#include "../include/display.h"
+#include "game.h"
+#include "display.h"
 
-// Initialize the game_1 to play
+// Initialize the game to play
 Game init_game(void) {
     Game game;
-    // Read enum in game_1.h to understand what number is which piece
+    // Read enum in game.h to understand what number is which piece
     Piece starting_board[9][9] = { {0, 0, 1, 1, 0, 0, 0, 0, 0},
                                    {0, 3, 1, 1, 0, 0, 0, 0, 0},
                                    {1, 1, 1, 0, 0, 0, 0, 0, 0},
@@ -72,32 +72,39 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     return 1; // Move is legal
 }
 
+typedef enum {
+    DIR_NONE = 0,
+    DIR_TOP,
+    DIR_LEFT,
+    DIR_RIGHT,
+    DIR_DOWN
+} Direction;
+
 // Helper function to assure pawns are eating eachother
-void did_eat(Game* game, int row, int col) {
-    Piece current_player = game->board[row][col];
-    Piece opponent = (current_player == P1_PAWN || current_player == P1_KING) ? P2_PAWN : P1_PAWN;
+void did_eat(Game* game, int row, int col, Direction sprint_direction) {
+    Piece opponent = (game->turn % 2 == 0) ? P2_PAWN : P1_PAWN;
 
     Piece top = (row - 1 >= 0)? game->board[row - 1][col] : P_NONE;
     Piece left = (col - 1 >= 0)? game->board[row][col - 1] : P_NONE;
     Piece right = (col + 1 <= 9)? game->board[row][col + 1] : P_NONE;
     Piece down = (row + 1 <= 9)? game->board[row + 1][col] : P_NONE;
 
-    if (top == opponent) {
+    if (top == opponent && sprint_direction == DIR_TOP) {
         if (row - 2 < 0 || game->board[row - 2][col] != opponent) {
             game->board[row - 1][col] = P_NONE;
             game->last_visited[row - 1][col] = P_NONE;
         }
-    } else if (left == opponent) {
+    } else if (left == opponent && sprint_direction == DIR_LEFT) {
         if (col - 2 < 0 || game->board[row][col - 2] != opponent) {
             game->board[row][col - 1] = P_NONE;
             game->last_visited[row][col - 1] = P_NONE;
         }
-    } else if (right == opponent) {
+    } else if (right == opponent && sprint_direction == DIR_RIGHT) {
         if (col + 2 > 9 || game->board[row][col + 2] != opponent) {
             game->board[row][col + 1] = P_NONE;
             game->last_visited[row][col + 1] = P_NONE;
         }
-    } else if (down == opponent) {
+    } else if (down == opponent && sprint_direction == DIR_DOWN) {
         if (row + 2 > 9 || game->board[row + 2][col] != opponent) {
             game->board[row + 1][col] = P_NONE;
             game->last_visited[row + 1][col] = P_NONE;
@@ -122,7 +129,22 @@ void update_board(Game *game, int dst_row, int dst_col) {
         Piece last_piece = game->board[dst_row][dst_col];
         game->last_visited[dst_row][dst_col] = last_piece;
 
-        // Advance turn
+        // Advance turn and check if someone was eaten
+        Direction direction;
+        if (dst_row != src_row) {
+            if (dst_row > src_row) {
+                direction = DIR_TOP;
+            } else {
+                direction = DIR_DOWN;
+            }
+        } else if (dst_col != dst_row) {
+            if (dst_col > src_col) {
+                direction = DIR_RIGHT;
+            } else {
+                direction = DIR_LEFT;
+            }
+        }
+        did_eat(game, dst_row, dst_col, direction);
         game->turn++;
 
         // Reset selection
