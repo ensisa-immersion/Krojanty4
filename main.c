@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "include/client.h"
+#include "include/display.h"
+#include "include/game.h"
 
 /**
  * Lance le code principal du serveur.
@@ -40,6 +43,9 @@ int main(int argc, char *argv[])
         printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
         return 1;
     }
+
+    Game game = init_game(); // Initializes game
+    initialize_display(argc, argv, &game); // Initializes display and also initializes click listener
 
     // Démarrage du client
     printf("Démarrage du client...\n");

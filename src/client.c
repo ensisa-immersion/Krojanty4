@@ -26,8 +26,6 @@ void *receive_message(int client_socket)
         printf("Message du serveur : %s\n", server_response);
     }
 
-    printf("je sors de la boucle");
-
     return NULL;
 }
 

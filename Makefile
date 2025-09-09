@@ -20,7 +20,7 @@ docs:
 	doxygen docs/Doxyfile
 
 compile:
-	$(CC) $(SRC_DIR)/*.c -o $(BUILD_DR)/krojanty
+	gcc main.c src/*.c -o ./build/game $(pkg-config --cflags --libs gtk4) -lpthread -I.
 
 help:
 	@echo "$$HELP_BODY"

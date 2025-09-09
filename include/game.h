@@ -1,16 +1,24 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef GAME_H_INCLUDED
+#define GAME_H_INCLUDED
 
-struct user_move_s
-{
-    int delta_x; // changement en x (ligne)
-    int delta_y; // changement en y (colonne)
-};
-typedef struct user_move_s user_move;
+typedef enum {
+    P_NONE = 0,
+    P1_PAWN,
+    P2_PAWN,
+    P1_KING,
+    P2_KING
+} Piece;
 
-int coord_valide(char col, char row);
-int entree_valide(const char *buffer);
-user_move parse_move(const char *buffer);
-int deplacement_diagonale_interdit(user_move move);
+typedef struct {
+    int won;
+    int turn;
+    int selected_tile[2];
 
-#endif // CLIENT_H
+    Piece last_visited[9][9];
+    Piece board[9][9];
+} Game;
+
+Game init_game(void);
+void update_board(Game* game, int dst_col, int dst_row);
+
+#endif // GAME_H_INCLUDED
