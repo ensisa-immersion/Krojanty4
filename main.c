@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Game game = init_game(); // Initializes game
+    Game game = init_game();               // Initializes game
     initialize_display(argc, argv, &game); // Initializes display and also initializes click listener
 
     // Démarrage du client
