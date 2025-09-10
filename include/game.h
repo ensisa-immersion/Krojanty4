@@ -2,6 +2,12 @@
 #define GAME_H_INCLUDED
 
 typedef enum {
+    LOCAL = 0,
+    SERVER,
+    CLIENT
+} GameMode;
+
+typedef enum {
     NOT_PLAYER = 0,
     P1,
     P2
@@ -15,20 +21,13 @@ typedef enum {
     P2_KING
 } Piece;
 
-// Direction that helps check if a pawn should be eaten
-typedef enum {
-    DIR_NONE = 0,
-    DIR_TOP,
-    DIR_LEFT,
-    DIR_RIGHT,
-    DIR_DOWN
-} Direction;
-
 typedef struct {
     int won;
     int turn;
     int selected_tile[2];
+    int is_ai;
 
+    GameMode game_mode;
     Piece last_visited[9][9];
     Piece board[9][9];
 } Game;
