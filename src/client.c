@@ -11,6 +11,13 @@
 #include "../include/display.h"
 #include "../include/game.h"
 
+void *start_gui()
+{
+    Game game = init_game();
+    initialize_display(0, NULL, &game);
+    return NULL;
+}
+
 void *receive_message(int client_socket)
 {
     // Réception des données envoyées par le serveur
@@ -31,7 +38,7 @@ void *receive_message(int client_socket)
 }
 
 // Envoi d'un message au serveur
-void send_message(int client_socket, char *message)
+void *send_message(int client_socket, char *message)
 {
     ssize_t bytes_sent = send(client_socket, message, strlen(message), 0); // Envoi du message au serveur
     if (bytes_sent == -1)
@@ -42,6 +49,7 @@ void send_message(int client_socket, char *message)
     {
         printf("Message envoyé au serveur : %s\n", message);
     }
+    return NULL;
 }
 
 int client(const char *ip_address, int port)
@@ -65,15 +73,15 @@ int client(const char *ip_address, int port)
         return -1;
     }
 
-    Game game = init_game();
-    initialize_display(0, NULL, &game);
+    pthread_t game_thread, receive_thread;
 
-    char message[] = "B2:A2";
-    send_message(client_socket, message);
+    pthread_create(&game_thread, NULL, start_gui, NULL);
+    pthread_detach(game_thread);
+    pthread_join(game_thread, NULL);
 
-    pthread_t receive_thread;
     pthread_create(&receive_thread, NULL, receive_message(client_socket), NULL);
-    // pthread_join(receive_thread, NULL);
+    pthread_detach(receive_thread);
+    pthread_join(receive_thread, NULL);
 
     return 0;
 }

@@ -24,8 +24,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Game game = init_game();
-    initialize_display(argc, argv, &game);
+    //Game game = init_game();
+    //initialize_display(argc, argv, &game);
 
     if (strcmp(argv[1], "-c") == 0)
     {
