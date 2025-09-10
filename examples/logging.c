@@ -3,36 +3,24 @@
 #include <unistd.h>
 
 int main(void) {
-    printf("=== Logger Example ===\n");
-    
-    // Initialize logger
+    printf("=== Exemple Logging ===\n");
+
+    // Mettre ici le nom de fichier de base.
+    // Quand on démarre l'app, un nouveau fichier se crée
+    // Un nombre va s'incrémenter dans le nom pour faire référence à la partie
     if (logger_init("application.log", LOG_DEBUG) != 0) {
-        fprintf(stderr, "Failed to initialize logger\n");
+        fprintf(stderr, "Impossible d'initialiser le logger\n");
         return 1;
     }
-    
-    printf("Using log file: %s\n", logger_get_filename());
-    
-    // Example log messages
-    LOG_INFO_MSG("Application started successfully");
-    LOG_DEBUG_MSG("Debug information: process ID = %d", getpid());
-    LOG_WARN_MSG("This is a warning message");
-    LOG_ERROR_MSG("Simulated error: %s", "Connection timeout");
-    
-    // Log some activity
-    for (int i = 1; i <= 5; i++) {
-        LOG_INFO_MSG("Processing item %d of 5", i);
-        sleep(1);  // Simulate some work
-    }
-    
-    LOG_INFO_MSG("All items processed successfully");
-    LOG_INFO_MSG("Application shutting down gracefully");
-    
+
+    // Exemples de messages
+    LOG_INFO_MSG("Démarrage application");
+    LOG_DEBUG_MSG("ID processus = %d", getpid());
+    LOG_WARN_MSG("Message d'alerte");
+    LOG_ERROR_MSG("Erreur simulé : %s", "Connection timeout");
+
     // Clean up
     logger_cleanup();
-    
-    printf("Logging complete. Check %s\n", "application.log (or numbered version)");
-    printf("Run this program multiple times to see log file numbering in action!\n");
-    
+
     return 0;
 }
