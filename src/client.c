@@ -8,7 +8,6 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#include "../include/client.h"
 #include "../include/display.h"
 #include "../include/game.h"
 
