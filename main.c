@@ -69,6 +69,10 @@ int main(int argc, char *argv[])
 
         server(port);
     }
+    else {
+        printf("Argument inconnu.");
+        return 1;
+    }
 
     return 0;
 }
