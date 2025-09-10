@@ -9,6 +9,8 @@
 #include <pthread.h>
 
 #include "../include/client.h"
+#include "../include/display.h"
+#include "../include/game.h"
 
 void *receive_message(int client_socket)
 {
@@ -63,6 +65,9 @@ int client(const char *ip_address, int port)
         close(client_socket);
         return -1;
     }
+
+    Game game = init_game();
+    initialize_display(0, NULL, &game);
 
     char message[] = "B2:A2";
     send_message(client_socket, message);

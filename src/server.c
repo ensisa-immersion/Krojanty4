@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
-#define PORT_SERVEUR 5555
+//#define PORT_SERVEUR 5555
 #define TAILLE_BUFFER 64
 
 /* ----- Initialisation de l'adresse et de la socket ----- */
@@ -170,7 +170,7 @@ int joueur1_joue(int client_fd, const char *coup, int *tour)
 }
 
 /* ----- Boucle principale ----- */
-int server(void)
+int server(int PORT_SERVEUR)
 {
     int client_joueur2 = -1;
     int partie_en_cours = 1;

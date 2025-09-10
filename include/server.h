@@ -3,7 +3,7 @@
 
 #include <arpa/inet.h>
 
-#define PORT_SERVEUR 5555
+//#define PORT_SERVEUR 5555
 #define TAILLE_BUFFER 64
 
 /* ----- Initialisation de l'adresse et de la socket ----- */
@@ -22,5 +22,8 @@ int lire_message_client(int fd, char *buffer, int max_size);
 
 /* ----- Joueur 1 : fonction appelée depuis GUI ----- */
 int joueur1_joue(int client_fd, const char *coup, int *tour);
+
+/* ----- Boucle principale ----- */
+int server(int PORT_SERVEUR);
 
 #endif // SERVER_H
