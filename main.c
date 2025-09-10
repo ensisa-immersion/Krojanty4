@@ -76,3 +76,14 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+/* #include "display.h"
+#include "game.h"
+// gcc $( pkg-config --cflags gtk4 ) -o bin/krojanty.exe src/.c $( pkg-config --libs gtk4 ) -Iinclude
+// gcc pkg-config --cflags gtk4 src/.c -o bin/krojanty.exe pkg-config --libs gtk4 -Iinclude
+
+int main (int argc, char **argv) {
+    Game game = init_game(); // Initializes game
+    initialize_display(0, NULL, &game); // Initializes display and also initializes click listener
+
+    return 0;
+}  */

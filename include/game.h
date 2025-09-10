@@ -15,6 +15,15 @@ typedef enum {
     P2_KING
 } Piece;
 
+// Direction that helps check if a pawn should be eaten
+typedef enum {
+    DIR_NONE = 0,
+    DIR_TOP,
+    DIR_LEFT,
+    DIR_RIGHT,
+    DIR_DOWN
+} Direction;
+
 typedef struct {
     int won;
     int turn;

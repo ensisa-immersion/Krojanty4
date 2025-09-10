@@ -85,15 +85,6 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     return 1; // Move is legal
 }
 
-// Direction that helps check if a pawn should be eaten
-typedef enum {
-    DIR_NONE = 0,
-    DIR_TOP,
-    DIR_LEFT,
-    DIR_RIGHT,
-    DIR_DOWN
-} Direction;
-
 
 // Returns player based on tile
 Player get_player(Piece piece) {
@@ -218,8 +209,12 @@ void update_board(Game *game, int dst_row, int dst_col) {
         did_eat(game, dst_row, dst_col, direction);
 
         // Handle wins
-        // int has_won = won(game);
-        // if ()
+        int has_won = won(game);
+        if (has_won == 8) {
+            game->won = 1;
+        } else if (has_won) {
+            game->won = 2;
+        }
 
         // Advance turn
         game->turn++;
