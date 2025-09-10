@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
-#include "display.h"
-#include "game.h"
+#include "../include/display.h"
+#include "../include/game.h"
 
 //#define PORT_SERVEUR 5555
 #define TAILLE_BUFFER 64
@@ -197,7 +197,7 @@ int server(int PORT_SERVEUR)
             envoyer_message_client(client_joueur2, "Bienvenue! Vous êtes le joueur 2.\n");
             printf("[INFO] Joueur 2 connecté! La partie peut commencer.\n");
 
-            Game game = init_game();
+            Game game = init_game(CLIENT, 0);
             initialize_display(0, NULL, &game);
         }
         usleep(100000);

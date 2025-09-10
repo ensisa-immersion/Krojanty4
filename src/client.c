@@ -8,12 +8,12 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#include "display.h"
-#include "game.h"
+#include "../include/display.h"
+#include "../include/game.h"
 
 void *start_gui()
 {
-    Game game = init_game();
+    Game game = init_game(CLIENT, 1);
     initialize_display(0, NULL, &game);
     return NULL;
 }

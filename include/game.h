@@ -21,6 +21,13 @@ typedef enum {
     P2_KING
 } Piece;
 
+typedef enum {
+    DIR_TOP,
+    DIR_DOWN,
+    DIR_LEFT,
+    DIR_RIGHT
+} Direction;
+
 typedef struct {
     int won;
     int turn;

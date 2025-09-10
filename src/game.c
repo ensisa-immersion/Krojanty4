@@ -3,7 +3,7 @@
 #include "../include/display.h"
 
 // Initialize the game to play
-Game init_game(void) {
+Game init_game(GameMode mode, int artificial_intelligence) {
     Game game;
     // Read enum in game.h to understand what number is which piece
     Piece starting_board[9][9] = { {0, 0, 1, 1, 0, 0, 0, 0, 0},
@@ -167,7 +167,15 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
 
 Piece won(Game* game) {
-    if (game->board[8][8] == P1_KING || game->board[0][0] == P2_KING) return 1;
+    if (game->board[8][8] == P1_KING) {
+        // game->won = 1;
+        return 1;
+    } else if (game->board[0][0] == P2_KING) {
+        // game->won = -1;
+        return 1;
+    }
+        
+         
 
     if (game->turn >= 63) {
         int counter = 0;
@@ -179,6 +187,7 @@ Piece won(Game* game) {
         }
 
         if (counter != 0) {
+            // game->won = 
             return 1;
         } else {
             return 8;
