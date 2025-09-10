@@ -1,75 +1,79 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
-#include "include/server.h"
-#include "include/client.h"
-#include "include/display.h"
-#include "include/game.h"
+#include "display.h"
+#include "game.h"
+#include "server.h"
+#include "client.h"
 
-/**
- * Lance le code principal du serveur ou du client.
- * @param argc Nombre d'arguments de la ligne de commande.
- * @param argv Tableau des arguments de la ligne de commande.
- */
-int main(int argc, char *argv[])
-{
-    // Vérification des arguments
-    if (argc != 3 || (strcmp(argv[1], "-c") != 0 && strcmp(argv[1], "-s") != 0))
-    {
-        printf("Usage : %s -c <adresse_ip>:<port> | -s <port>\n", argv[0]);
-        printf("Exemple client : %s -c 127.0.0.1:8080\n", argv[0]);
-        printf("Exemple serveur : %s -s 8080\n", argv[0]);
-        return 1;
+// gcc $( pkg-config --cflags gtk4 ) -o bin/krojanty.exe src/*.c $( pkg-config --libs gtk4 ) -Iinclude
+// gcc `pkg-config --cflags gtk4` main.c src/*.c -o bin/krojanty.exe `pkg-config --libs gtk4` -Iinclude
+
+int main (int argc, char **argv) {
+    // Initializes game
+    Game game;
+
+    // Checks if AI
+    int is_artificial_intelligence = 0;
+    for (int i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-ia") == 0) is_artificial_intelligence = 1;
     }
 
-    if (strcmp(argv[1], "-c") == 0)
-    {
-        // Mode client
-        char *ip_port = argv[2];
-        char *delimiter = strchr(ip_port, ':');
+    // Choose game mode
+    for (int j = 0; j < argc; j++) {
+        if (strcmp(argv[j], "-l") == 0) {
 
-        if (delimiter == NULL)
-        {
-            printf("Format incorrect. Utilisez <adresse_ip>:<port>\n");
-            return 1;
+            game = init_game(LOCAL, is_artificial_intelligence);
+
+        } else if (strcmp(argv[j], "-s") == 0) {
+
+            int port = atoi(argv[2]);
+            if (port <= 0 || port > 65535)
+            {
+                printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
+                return 1;
+            }
+
+            printf("Démarrage du serveur sur le port %d...\n", port);
+            printf("Serveur lancé (simulation, code réel en commentaire)\n");
+
+            server(port);
+
+        } else if (strcmp(argv[j], "-c") == 0) {
+             // Mode client
+            char *ip_port = argv[2];
+            char *delimiter = strchr(ip_port, ':');
+
+            if (delimiter == NULL)
+            {
+                printf("Format incorrect. Utilisez <adresse_ip>:<port>\n");
+                return 1;
+            }
+
+            *delimiter = '\0';
+            const char *ip_address = ip_port;
+            int port = atoi(delimiter + 1);
+
+            if (port <= 0 || port > 65535)
+            {
+                printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
+                return 1;
+            }
+
+            printf("Démarrage du client...\n");
+            int socket = client(ip_address, port);
+
+            send_message(socket, "B2:A2");
+
+        } else {
+
+            game = init_game(LOCAL, is_artificial_intelligence);
+
         }
-
-        *delimiter = '\0';
-        const char *ip_address = ip_port;
-        int port = atoi(delimiter + 1);
-
-        if (port <= 0 || port > 65535)
-        {
-            printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
-            return 1;
-        }
-
-        printf("Démarrage du client...\n");
-        int socket = client(ip_address, port);
-
-        send_message(socket, "B2:A2");
     }
-    else if (strcmp(argv[1], "-s") == 0)
-    {
-        // Mode serveur
-        int port = atoi(argv[2]);
-        if (port <= 0 || port > 65535)
-        {
-            printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
-            return 1;
-        }
 
-        printf("Démarrage du serveur sur le port %d...\n", port);
-        printf("Serveur lancé (simulation, code réel en commentaire)\n");
-
-        server(port);
-    }
-    else {
-        printf("Argument inconnu.");
-        return 1;
-    }
+    // Initializes display and also initializes click listener
+    initialize_display(0, NULL, &game);
 
     return 0;
 }
