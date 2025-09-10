@@ -15,9 +15,13 @@ static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, 
     Game *game = data->game;
     GtkWidget *drawing_area = data->drawing_area;
 
+    // Makes sure you can only click on your turn
+    if (game->game_mode == SERVER && game->turn % 2 == 0) return;
+    if (game->game_mode == CLIENT && game->turn % 2 == 1) return;
+
     // Stops if someone won
     if (game->won) {
-        *game = init_game();
+        *game = init_game(game->game_mode, game->is_ai);
         gtk_widget_queue_draw(drawing_area);
         return;
     }
@@ -63,6 +67,7 @@ static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, 
     // Redraw the board
     gtk_widget_queue_draw(drawing_area);
 }
+
 
 
 void detect_click(GtkWidget *drawing_area, Game *game) {

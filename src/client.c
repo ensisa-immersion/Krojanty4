@@ -8,8 +8,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#include "../include/display.h"
-#include "../include/game.h"
+#include "display.h"
+#include "game.h"
 
 void *start_gui()
 {

@@ -33,8 +33,11 @@ typedef struct {
     Piece board[9][9];
 } Game;
 
-Game init_game(void);
+Game init_game(GameMode mode, int artificial_intelligence);
+int score_player_one(Game game);
+int score_player_two(Game game);
 void update_board(Game* game, int dst_col, int dst_row);
 Player get_player(Piece piece);
+
 
 #endif // GAME_H_INCLUDED

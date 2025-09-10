@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 
-#include "../include/display.h"
-#include "../include/game.h"
+#include "display.h"
+#include "game.h"
 
 //#define PORT_SERVEUR 5555
 #define TAILLE_BUFFER 64

@@ -33,6 +33,33 @@ Game init_game(void) {
 }
 
 
+// Return player 1's score
+int score_player_one(Game game) {
+    int player_one_score = 0;
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (get_player(game.last_visited[i][j]) == P1) player_one_score++;
+            if (get_player(game.board[i][j]) == P1) player_one_score++;
+        }
+    }
+
+    return player_one_score;
+}
+
+// Reutns player 2's score
+int score_player_two(Game game) {
+    int player_two_score = 0;
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (get_player(game.last_visited[i][j]) == P2) player_two_score++;
+            if (get_player(game.board[i][j]) == P2) player_two_score++;
+        }
+    }
+
+    return player_two_score;
+}
+
+
 /**
  * Vérifie si un déplacement est légal selon les règles du jeu.
  * C'est à dire :
@@ -175,6 +202,36 @@ Piece won(Game* game) {
 }
 
 
+// Update pieces in a LAN game
+int update_board_lan(Game* game) {
+    if (game->game_mode == SERVER && game->turn % 2 == 0) {
+        int opponent_src_row = 0;
+        int opponent_dst_row = 0;
+        int opponent_src_col = 3;
+        int opponent_dst_col = 5;
+        if (!is_move_legal(game, opponent_src_row, opponent_src_col, opponent_dst_row, opponent_dst_col)) return 0;
+
+        game->selected_tile[0] = opponent_src_row;
+        game->selected_tile[1] = opponent_src_col;
+
+        update_board(game, opponent_dst_row, opponent_dst_col);
+    } else if (game->game_mode == CLIENT && game->turn % 2 == 1) {
+        int opponent_src_row = 8;
+        int opponent_dst_row = 8;
+        int opponent_src_col = 5;
+        int opponent_dst_col = 3;
+        if (!is_move_legal(game, opponent_src_row, opponent_src_col, opponent_dst_row, opponent_dst_col)) return 0;
+
+        game->selected_tile[0] = opponent_src_row;
+        game->selected_tile[1] = opponent_src_col;
+
+        update_board(game, opponent_dst_row, opponent_dst_col);
+    }
+
+    return 1;
+}
+
+
 // Changes pieces placing around the board
 void update_board(Game *game, int dst_row, int dst_col) {
     int src_row = game->selected_tile[0];
@@ -199,7 +256,7 @@ void update_board(Game *game, int dst_row, int dst_col) {
             } else {
                 direction = DIR_TOP;
             }
-        } else if (dst_col != dst_row) {
+        } else if (dst_col != src_col) {
             if (dst_col > src_col) {
                 direction = DIR_RIGHT;
             } else {
@@ -211,9 +268,9 @@ void update_board(Game *game, int dst_row, int dst_col) {
         // Handle wins
         int has_won = won(game);
         if (has_won == 8) {
-            game->won = 1;
-        } else if (has_won) {
             game->won = 2;
+        } else if (has_won == 1) {
+            game->won = 1;
         }
 
         // Advance turn
@@ -222,6 +279,8 @@ void update_board(Game *game, int dst_row, int dst_col) {
         // Reset selection
         game->selected_tile[0] = -1;
         game->selected_tile[1] = -1;
+
+        int next_move_status = update_board_lan(game);
     }
 }
 
