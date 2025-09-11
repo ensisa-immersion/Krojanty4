@@ -1,88 +1,111 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <pthread.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <pthread.h>
+#include <unistd.h>
 
-#include "../include/display.h"
-#include "../include/game.h"
+#include "game.h"
+#include "display.h"
+#include "input.h"
+#include "netutil.h"
+#include "move_util.h"
 
-void *start_gui()
-{
-    Game game = init_game(CLIENT, 1);
-    initialize_display(0, NULL, &game);
-    return NULL;
-}
+/* Socket client global (si déjà déclaré ailleurs, garde une seule def) */
+int g_client_socket = -1;
 
-void *receive_message(int client_socket)
-{
-    // Réception des données envoyées par le serveur
-    char server_response[256];
-    while (1)
-    { // Boucle infinie pour recevoir en continu
-        ssize_t bytes_received = recv(client_socket, server_response, sizeof(server_response) - 1, 0);
-        if (bytes_received <= 0)
-        {
-            perror("Erreur lors de la réception ou connexion fermée");
-            break;
-        }
-        server_response[bytes_received] = '\0'; // Terminaison de la chaîne
-        printf("Message du serveur : %s\n", server_response);
-    }
+/* ===== Connexion au serveur ===== */
+int connect_to_server(const char *ip, int port) {
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) { perror("socket"); return -1; }
 
-    return NULL;
-}
-
-// Envoi d'un message au serveur
-void *send_message(int client_socket, char *message)
-{
-    ssize_t bytes_sent = send(client_socket, message, strlen(message), 0); // Envoi du message au serveur
-    if (bytes_sent == -1)
-    {
-        perror("Erreur lors de l'envoi du message");
-    }
-    else
-    {
-        printf("Message envoyé au serveur : %s\n", message);
-    }
-    return NULL;
-}
-
-int client(const char *ip_address, int port)
-{
-    // Création d'un socket client
-    int client_socket;
-    client_socket = socket(AF_INET, SOCK_STREAM, 0); // Initialisation du socket en utilisant l'IPv4 (AF_INET) et le protocole TCP (SOCK_STREAM)
-
-    // Configuration de l'adresse du serveur auquel se connecter
-    struct sockaddr_in server_address = {
-        .sin_family = AF_INET,                   // Utilisation du protocole IPv4
-        .sin_port = htons(port),                 // Conversion du port en format réseau (host-to-network-short)
-        .sin_addr.s_addr = inet_addr(ip_address) // Conversion de l'adresse IP en format binaire
-    };
-
-    // Établissement de la connexion au serveur et gestion des erreurs
-    if (connect(client_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1)
-    {
-        perror("Erreur de connexion");
-        close(client_socket);
+    struct sockaddr_in adr;
+    memset(&adr, 0, sizeof(adr));
+    adr.sin_family = AF_INET;
+    adr.sin_port   = htons(port);
+    if (inet_pton(AF_INET, ip, &adr.sin_addr) != 1) {
+        perror("inet_pton");
+        close(s);
         return -1;
     }
+    if (connect(s, (struct sockaddr*)&adr, sizeof(adr)) < 0) {
+        perror("connect");
+        close(s);
+        return -1;
+    }
+    g_client_socket = s;
+    printf("[CLIENT] Connecté à %s:%d\n", ip, port);
+    return s;
+}
 
-    pthread_t game_thread, receive_thread;
+/* ===== Envoi d’un coup (4 octets) ===== */
+void send_message(int client_socket, const char *move4) {
+    if (!move4 || strlen(move4) != 4) {
+        fprintf(stderr, "[CLIENT] move invalide (attendu 4 chars)\n");
+        return;
+    }
+    if (client_socket < 0) { fprintf(stderr, "[CLIENT] socket invalide\n"); return; }
 
-    /* pthread_create(&game_thread, NULL, start_gui, NULL);
-    pthread_detach(game_thread);
-    pthread_join(game_thread, NULL); */
-    start_gui(); // Error !
+    if (send_all(client_socket, move4, 4) == -1) {
+        perror("[CLIENT] send_all");
+    } else {
+        printf("[CLIENT] Envoyé: %.4s\n", move4);
+    }
+}
 
-    pthread_create(&receive_thread, NULL, receive_message(client_socket), NULL);
-    pthread_detach(receive_thread);
-    pthread_join(receive_thread, NULL);
+/* ===== Thread de réception client ===== */
+typedef struct { int sock; Game *game; } ClientRxCtx;
 
+static void *client_rx_thread(void *arg) {
+    ClientRxCtx *ctx = (ClientRxCtx*)arg;
+    int s = ctx->sock;
+    Game *game = ctx->game;
+    free(ctx);
+
+    char m[4];
+    for (;;) {
+        int r = read_exact(s, m, 4);
+        if (r == 1) {
+            printf("[CLIENT] Reçu coup: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
+
+            /* APPLICATION IMMÉDIATE - pas de vérification */
+            post_move_to_gtk(game, m);
+
+        } else if (r == 0) {
+            printf("[CLIENT] Serveur fermé proprement.\n");
+            break;
+        } else {
+            perror("[CLIENT] recv");
+            break;
+        }
+    }
+    close(s);
+    if (g_client_socket == s) g_client_socket = -1;
+    return NULL;
+}
+
+/* Démarrage du RX (à appeler après connect) */
+int start_client_rx(Game *game) {
+    if (g_client_socket < 0) return -1;
+    pthread_t th;
+    ClientRxCtx *c = (ClientRxCtx*)malloc(sizeof(*c));
+    if (!c) return -1;
+    c->sock = g_client_socket;
+    c->game = game;
+    if (pthread_create(&th, NULL, client_rx_thread, c) != 0) {
+        perror("pthread_create");
+        free(c);
+        return -1;
+    }
+    pthread_detach(th);
     return 0;
+}
+
+/* (optionnel) Fermeture propre */
+void client_close(void) {
+    if (g_client_socket >= 0) {
+        close(g_client_socket);
+        g_client_socket = -1;
+    }
 }

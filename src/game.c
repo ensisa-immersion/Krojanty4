@@ -1,24 +1,30 @@
 #include <math.h>
-#include "../include/game.h"
-#include "../include/display.h"
+#include "game.h"
+#include "display.h"
 
 // Initialize the game to play
 Game init_game(GameMode mode, int artificial_intelligence) {
+    (void)mode;                    // évite warnings si pas utilisé partout
+    (void)artificial_intelligence; // idem
+
     Game game;
     // Read enum in game.h to understand what number is which piece
-    Piece starting_board[9][9] = { {0, 0, 1, 1, 0, 0, 0, 0, 0},
-                                   {0, 3, 1, 1, 0, 0, 0, 0, 0},
-                                   {1, 1, 1, 0, 0, 0, 0, 0, 0},
-                                   {1, 1, 0, 0, 0, 0, 0, 0, 0},
-                                   {0, 0, 0, 0, 0, 0, 0, 0, 0},
-                                   {0, 0, 0, 0, 0, 0, 0, 2, 2},
-                                   {0, 0, 0, 0, 0, 0, 2, 2, 2},
-                                   {0, 0, 0, 0, 0, 2, 2, 4, 0},
-                                   {0, 0, 0, 0, 0, 2, 2, 0, 0},
-                                };
+    Piece starting_board[9][9] = {
+        {0, 0, 1, 1, 0, 0, 0, 0, 0},
+        {0, 3, 1, 1, 0, 0, 0, 0, 0},
+        {1, 1, 1, 0, 0, 0, 0, 0, 0},
+        {1, 1, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 0, 0, 2, 2},
+        {0, 0, 0, 0, 0, 0, 2, 2, 2},
+        {0, 0, 0, 0, 0, 2, 2, 4, 0},
+        {0, 0, 0, 0, 0, 2, 2, 0, 0},
+    };
+
     game.won = 0;
     game.turn = 0;
 
+    // initialise les états
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
             game.last_visited[i][j] = starting_board[i][j];
@@ -28,6 +34,10 @@ Game init_game(GameMode mode, int artificial_intelligence) {
 
     game.selected_tile[0] = -1;
     game.selected_tile[1] = -1;
+
+    // Valeurs cohérentes pour éviter des états non-initialisés
+    game.game_mode = mode;
+    game.is_ai = artificial_intelligence ? 1 : 0;
 
     return game;
 }
@@ -42,7 +52,6 @@ int score_player_one(Game game) {
             if (get_player(game.board[i][j]) == P1) player_one_score++;
         }
     }
-
     return player_one_score;
 }
 
@@ -55,7 +64,6 @@ int score_player_two(Game game) {
             if (get_player(game.board[i][j]) == P2) player_two_score++;
         }
     }
-
     return player_two_score;
 }
 

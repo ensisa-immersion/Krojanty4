@@ -1,263 +1,187 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <fcntl.h>
+#include <pthread.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <unistd.h>
 
-#include "../include/display.h"
-#include "../include/game.h"
+#include "game.h"
+#include "display.h"
+#include "netutil.h"
+#include "move_util.h"
 
-//#define PORT_SERVEUR 5555
-#define TAILLE_BUFFER 64
+/* Petit serveur 1v1: accepte 2 clients, relaye les coups (4 octets) */
 
-/* ----- Initialisation de l'adresse et de la socket ----- */
-void initialiser_adresse(struct sockaddr_in *adresse, int port)
-{
-    adresse->sin_family = AF_INET;
-    adresse->sin_addr.s_addr = INADDR_ANY;
-    adresse->sin_port = htons(port);
-}
+/* Socket du client connecté (pour que le serveur puisse lui envoyer ses coups) */
+int g_server_client_socket = -1;
 
-int initialiser_socket(struct sockaddr_in *adresse, int max_conn)
-{
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1)
-    {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-
-    int option = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option)) == -1)
-    {
-        perror("setsockopt");
-        close(sock);
-        exit(EXIT_FAILURE);
-    }
-
-    if (bind(sock, (struct sockaddr *)adresse, sizeof(*adresse)) != 0)
-    {
-        perror("bind");
-        close(sock);
-        exit(EXIT_FAILURE);
-    }
-
-    if (listen(sock, max_conn) == -1)
-    {
-        perror("listen");
-        close(sock);
-        exit(EXIT_FAILURE);
-    }
-
-    fcntl(sock, F_SETFL, O_NONBLOCK);
-    return sock;
-}
-
-int accepter_client(int sock)
-{
-    struct sockaddr_in adr;
-    socklen_t taille = sizeof(adr);
-    int cli = accept(sock, (struct sockaddr *)&adr, &taille);
-    if (cli != -1)
-    {
-        fcntl(cli, F_SETFL, O_NONBLOCK);
-        printf("[DEBUG] Client connecté (fd=%d) depuis %s:%d\n",
-               cli, inet_ntoa(adr.sin_addr), ntohs(adr.sin_port));
-    }
-    return cli;
-}
-
-/* ----- Validation des coups ----- */
-int coord_valide(char col, char row)
-{
-    return (col >= 'A' && col <= 'I' && row >= '1' && row <= '9');
-}
-
-int entree_valide(const char *buffer)
-{
-    int len = strlen(buffer);
-    while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
-    {
-        len--;
-    }
-    if (len != 5 || buffer[2] != ':')
-        return 0;
-    return coord_valide(buffer[0], buffer[1]) && coord_valide(buffer[3], buffer[4]);
-}
-
-int deplacement_valide(const char *buffer)
-{
-    int col1 = buffer[0] - 'A';
-    int row1 = buffer[1] - '1';
-    int col2 = buffer[3] - 'A';
-    int row2 = buffer[4] - '1';
-
-    if ((col1 != col2) && (row1 != row2))
-        return 0; // diagonal interdit
-    if (col1 == col2 && row1 == row2)
-        return 0; // pas de mouvement
-    return 1;
-}
-
-/* ----- Communication avec le client ----- */
-void envoyer_message_client(int fd, const char *msg)
-{
-    if (fd == -1)
+/* Fonction pour envoyer un coup du serveur au client */
+void send_message_to_client(int server_socket, const char *move4) {
+    if (!move4 || strlen(move4) != 4) {
+        fprintf(stderr, "[SERVER] move invalide (attendu 4 chars)\n");
         return;
+    }
+    if (server_socket < 0) {
+        fprintf(stderr, "[SERVER] socket client invalide\n");
+        return;
+    }
 
-    size_t total_sent = 0;
-    size_t msg_len = strlen(msg);
-
-    while (total_sent < msg_len)
-    {
-        ssize_t sent = send(fd, msg + total_sent, msg_len - total_sent, 0);
-        if (sent <= 0)
-        {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                perror("send");
-                break;
-            }
-            usleep(1000);
-            continue;
-        }
-        total_sent += sent;
+    if (send_all(server_socket, move4, 4) == -1) {
+        perror("[SERVER] send_all au client");
+    } else {
+        printf("[SERVER] Envoyé au client: %.4s\n", move4);
     }
 }
 
-int lire_message_client(int fd, char *buffer, int max_size)
-{
-    int recu = recv(fd, buffer, max_size - 1, 0);
-    if (recu > 0)
-    {
-        buffer[recu] = '\0';
-        int len = strlen(buffer);
-        while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
-        {
-            buffer[--len] = '\0';
+typedef struct {
+    int me_sock;
+    int other_sock;
+    Game *game;     /* si serveur-host applique aussi localement, utiliser post_move_to_gtk */
+} SrvRxCtx;
+
+static void *server_client_rx(void *arg) {
+    SrvRxCtx *ctx = (SrvRxCtx*)arg;
+    int me = ctx->me_sock, other = ctx->other_sock;
+    Game *game = ctx->game;
+    free(ctx);
+
+    char m[4];
+    for (;;) {
+        int r = read_exact(me, m, 4);
+        if (r == 1) {
+            printf("[SERVER] Reçu coup client: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
+
+            /* APPLICATION IMMÉDIATE côté serveur */
+            if (game) {
+                post_move_to_gtk(game, m);
+            }
+
+            /* Relais au pair (pour mode 2 clients) - pour l'instant non utilisé */
+            if (other >= 0) {
+                if (send_all(other, m, 4) == -1) {
+                    perror("[SERVER] send_all to peer");
+                }
+            }
+
+        } else if (r == 0) {
+            printf("[SERVER] Client fermé.\n");
+            break;
+        } else {
+            perror("[SERVER] recv");
+            break;
         }
-        return len > 0 ? len : 0;
     }
-    return recu;
+
+    close(me);
+    if (g_server_client_socket == me) {
+        g_server_client_socket = -1;
+    }
+    return NULL;
 }
 
-/* ----- Joueur 1 : fonction appelée depuis GUI ----- */
-int joueur1_joue(int client_fd, const char *coup, int *tour)
-{
-    if (!entree_valide(coup))
-    {
-        printf("[ERREUR] Coup invalide (format)\n");
-        return 0;
-    }
-    if (!deplacement_valide(coup))
-    {
-        printf("[ERREUR] Coup invalide (déplacement)\n");
-        return 0;
-    }
+static int create_listen_socket(int port) {
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) { perror("socket"); return -1; }
 
-    printf("[OK] Joueur 1 a joué: %s\n", coup);
+    int opt = 1;
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    if (client_fd != -1)
-    {
-        char msg[128];
-        snprintf(msg, sizeof(msg), "Joueur 1 a joué: %s\nVotre tour!\n", coup);
-        envoyer_message_client(client_fd, msg);
+    struct sockaddr_in adr;
+    memset(&adr, 0, sizeof(adr));
+    adr.sin_family = AF_INET;
+    adr.sin_addr.s_addr = INADDR_ANY;
+    adr.sin_port = htons(port);
+
+    if (bind(s, (struct sockaddr*)&adr, sizeof(adr)) < 0) {
+        perror("bind"); close(s); return -1;
     }
-
-    *tour = 1; // Passe au joueur 2
-    return 1;
+    if (listen(s, 2) < 0) {
+        perror("listen"); close(s); return -1;
+    }
+    printf("[SERVER] Écoute sur 0.0.0.0:%d\n", port);
+    return s;
 }
 
-/* ----- Boucle principale ----- */
-int server(int PORT_SERVEUR)
-{
-    int client_joueur2 = -1;
-    int partie_en_cours = 1;
-    int tour = 0; // 0 = Joueur 1, 1 = Joueur 2
+/* Lance un match 1v1: attend 2 clients, crée 2 threads RX croisés */
+int run_server_1v1(Game *game, int port) {
+    int ls = create_listen_socket(port);
+    if (ls < 0) return -1;
 
-    struct sockaddr_in adr_serv;
-    initialiser_adresse(&adr_serv, PORT_SERVEUR);
-    int sock_serv = initialiser_socket(&adr_serv, 1);
+    struct sockaddr_in cli;
+    socklen_t clen = sizeof(cli);
 
-    printf("=== SERVEUR DE JEU - JOUEUR 1 ===\n");
-    printf("[INFO] Serveur en écoute sur le port %d\n", PORT_SERVEUR);
-    printf("[INFO] Attente de la connexion du joueur 2...\n");
+    printf("[SERVER] En attente du Client A…\n");
+    int a = accept(ls, (struct sockaddr*)&cli, &clen);
+    if (a < 0) { perror("accept A"); close(ls); return -1; }
+    printf("[SERVER] Client A connecté.\n");
 
-    // Attente connexion joueur 2
-    while (client_joueur2 == -1)
-    {
-        int cli = accepter_client(sock_serv);
-        if (cli != -1)
-        {
-            client_joueur2 = cli;
-            envoyer_message_client(client_joueur2, "Bienvenue! Vous êtes le joueur 2.\n");
-            printf("[INFO] Joueur 2 connecté! La partie peut commencer.\n");
+    printf("[SERVER] En attente du Client B…\n");
+    int b = accept(ls, (struct sockaddr*)&cli, &clen);
+    if (b < 0) { perror("accept B"); close(a); close(ls); return -1; }
+    printf("[SERVER] Client B connecté.\n");
 
-            Game game = init_game(CLIENT, 1);
-            initialize_display(0, NULL, &game);
-        }
-        usleep(100000);
+    /* Démarre RX pour A (envoie à B) */
+    pthread_t thA, thB;
+
+    SrvRxCtx *cA = (SrvRxCtx*)malloc(sizeof(*cA));
+    cA->me_sock = a; cA->other_sock = b; cA->game = game;
+    if (pthread_create(&thA, NULL, server_client_rx, cA) != 0) {
+        perror("pthread_create A");
+        free(cA); close(a); close(b); close(ls);
+        return -1;
     }
+    pthread_detach(thA);
 
-    char buffer[TAILLE_BUFFER + 1];
-
-    // --- Test sans GUI : joueur 1 joue une seule fois ---
-    joueur1_joue(client_joueur2, "A2:A3", &tour);
-
-    // Boucle de jeu
-    while (partie_en_cours)
-    {
-        if (tour == 0)
-        {
-            // Tour du joueur 1
-            // Attente de l'appel depuis la GUI
-        }
-        else
-        {
-            // Tour du joueur 2
-            int recu = lire_message_client(client_joueur2, buffer, TAILLE_BUFFER);
-
-            if (recu > 0)
-            {
-                printf("[INFO] Joueur 2 a joué: %s\n", buffer);
-
-                if (!entree_valide(buffer))
-                {
-                    envoyer_message_client(client_joueur2, "Format invalide! Utilisez A2:A3\n");
-                }
-                else if (!deplacement_valide(buffer))
-                {
-                    envoyer_message_client(client_joueur2, "Déplacement invalide!\n");
-                }
-                else
-                {
-                    envoyer_message_client(client_joueur2, "Coup accepté! Attendez...\n");
-                    printf("[OK] Coup joueur 2 accepté.\n");
-                    tour = 0; // Retour au joueur 1
-                }
-            }
-            else if (recu == 0)
-            {
-                printf("[WARN] Joueur 2 s'est déconnecté.\n");
-                close(client_joueur2);
-                client_joueur2 = -1;
-            }
-            else if (recu < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                perror("recv");
-                close(client_joueur2);
-                client_joueur2 = -1;
-            }
-        }
-        usleep(50000);
+    /* Démarre RX pour B (envoie à A) */
+    SrvRxCtx *cB = (SrvRxCtx*)malloc(sizeof(*cB));
+    cB->me_sock = b; cB->other_sock = a; cB->game = game;
+    if (pthread_create(&thB, NULL, server_client_rx, cB) != 0) {
+        perror("pthread_create B");
+        free(cB); close(a); close(b); close(ls);
+        return -1;
     }
+    pthread_detach(thB);
 
-    if (client_joueur2 != -1)
-        close(client_joueur2);
-    close(sock_serv);
+    /* Le serveur garde l’écoute ouverte (ou pas selon ton design) */
+    /* Ici on ferme l’écoute pour un match 1v1 fixe */
+    close(ls);
+    printf("[SERVER] Match lancé. RX threads actifs.\n");
+    return 0;
+}
+
+/* Version simplifiée: serveur = joueur 1, attend 1 client = joueur 2 */
+int run_server_host(Game *game, int port) {
+    int ls = create_listen_socket(port);
+    if (ls < 0) return -1;
+
+    struct sockaddr_in cli;
+    socklen_t clen = sizeof(cli);
+
+    printf("[SERVER] En attente d'un client…\n");
+    int client_sock = accept(ls, (struct sockaddr*)&cli, &clen);
+    if (client_sock < 0) { perror("accept client"); close(ls); return -1; }
+    printf("[SERVER] Client connecté. Vous pouvez jouer!\n");
+
+    /* Sauvegarde le socket du client pour pouvoir lui envoyer des coups */
+    g_server_client_socket = client_sock;
+
+    /* Démarre RX pour le client */
+    pthread_t client_thread;
+    SrvRxCtx *client_ctx = (SrvRxCtx*)malloc(sizeof(*client_ctx));
+    client_ctx->me_sock = client_sock;
+    client_ctx->other_sock = -1; // Le serveur ne relaye pas, il traite directement
+    client_ctx->game = game;
+
+    if (pthread_create(&client_thread, NULL, server_client_rx, client_ctx) != 0) {
+        perror("pthread_create client");
+        free(client_ctx); close(client_sock); close(ls);
+        g_server_client_socket = -1;
+        return -1;
+    }
+    pthread_detach(client_thread);
+
+    close(ls);
+    printf("[SERVER] Match lancé. Thread RX client actif.\n");
     return 0;
 }

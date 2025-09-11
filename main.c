@@ -1,79 +1,83 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
-#include "./include/display.h"
-#include "./include/game.h"
-#include "./include/server.h"
-#include "./include/client.h"
+#include "game.h"
+#include "display.h"
+#include "client.h"
+#include "server.h"
 
-// gcc $( pkg-config --cflags gtk4 ) -o bin/krojanty.exe src/*.c $( pkg-config --libs gtk4 ) -Iinclude
-// gcc `pkg-config --cflags gtk4` main.c src/*.c -o bin/krojanty.exe `pkg-config --libs gtk4` -Iinclude
+typedef struct {
+    Game *game;
+    int port;
+} ServerData;
 
-int main (int argc, char **argv) {
-    // Initializes game
-    Game game;
+void* run_server_thread(void* arg) {
+    ServerData *data = (ServerData*)arg;
+    run_server_host(data->game, data->port);
+    free(data);
+    return NULL;
+}
 
-    // Checks if AI
-    int is_artificial_intelligence = 0;
-    for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[i], "-ia") == 0) is_artificial_intelligence = 1;
+int main(int argc, char *argv[]) {
+    if (argc == 1 || (argc >= 2 && strcmp(argv[1], "-l") == 0)) {
+        // Mode LOCAL (2 joueurs sur la même machine)
+        printf("Démarrage en mode local...\n");
+        Game game = init_game(LOCAL, 0);
+        return initialize_display(0, NULL, &game);
     }
 
-    // Choose game mode
-    for (int j = 0; j < argc; j++) {
-        if (strcmp(argv[j], "-l") == 0) {
+    if (strcmp(argv[1], "-s") == 0 && argc >= 3) {
+        // Mode SERVEUR (host + player)
+        int port = atoi(argv[2]);
+        printf("Démarrage du serveur sur le port %d...\n", port);
+        Game game = init_game(SERVER, 0);
 
-            game = init_game(LOCAL, is_artificial_intelligence);
+        // Lance le serveur dans un thread séparé pour ne pas bloquer la GUI
+        pthread_t server_thread;
+        ServerData *server_data = malloc(sizeof(ServerData));
+        server_data->game = &game;
+        server_data->port = port;
 
-        } else if (strcmp(argv[j], "-s") == 0) {
-
-            int port = atoi(argv[2]);
-            if (port <= 0 || port > 65535)
-            {
-                printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
-                return 1;
-            }
-
-            printf("Démarrage du serveur sur le port %d...\n", port);
-            printf("Serveur lancé (simulation, code réel en commentaire)\n");
-
-            server(port);
-
-        } else if (strcmp(argv[j], "-c") == 0) {
-             // Mode client
-            char *ip_port = argv[2];
-            char *delimiter = strchr(ip_port, ':');
-
-            if (delimiter == NULL)
-            {
-                printf("Format incorrect. Utilisez <adresse_ip>:<port>\n");
-                return 1;
-            }
-
-            *delimiter = '\0';
-            const char *ip_address = ip_port;
-            int port = atoi(delimiter + 1);
-
-            if (port <= 0 || port > 65535)
-            {
-                printf("Port invalide. Utilisez un port entre 1 et 65535.\n");
-                return 1;
-            }
-
-            printf("Démarrage du client...\n");
-            int socket = client(ip_address, port);
-
-            send_message(socket, "B2:A2");
-
-        } else {
-
-            game = init_game(LOCAL, is_artificial_intelligence);
-
+        if (pthread_create(&server_thread, NULL, run_server_thread, server_data) != 0) {
+            fprintf(stderr, "[SERVER] Échec du lancement du thread serveur.\n");
+            free(server_data);
+            return 1;
         }
+        pthread_detach(server_thread);
+
+        // Lance immédiatement l'UI GTK pour le serveur (joueur host)
+        char *gtk_argv[] = { argv[0], NULL };
+        return initialize_display(1, gtk_argv, &game);
     }
 
-    // Initializes display and also initializes click listener
-    initialize_display(0, NULL, &game);
+    if (strcmp(argv[1], "-c") == 0 && argc >= 3) {
+        // Mode CLIENT
+        char *sep = strchr(argv[2], ':');
+        if (!sep) {
+            fprintf(stderr, "Format invalide: utilisez -c ip:port\n");
+            return 1;
+        }
 
-    return 0;
+        *sep = '\0';
+        const char *addr = argv[2];
+        int port = atoi(sep + 1);
+
+        printf("Connexion au serveur %s:%d...\n", addr, port);
+        Game game = init_game(CLIENT, 0);
+
+        if (connect_to_server(addr, port) < 0) {
+            fprintf(stderr, "[CLIENT] Impossible de se connecter.\n");
+            return 1;
+        }
+        start_client_rx(&game);
+
+        // Lancement de GTK côté client
+        char *gtk_argv[] = { argv[0], NULL };
+        return initialize_display(1, gtk_argv, &game);
+    }
+
+    fprintf(stderr, "Usage: %s -l | -s <port> | -c <ip:port>\n", argv[0]);
+    return 1;
 }

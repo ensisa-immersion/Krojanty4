@@ -11,4 +11,7 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
 void activate (GtkApplication *app, gpointer user_data);
 int initialize_display(int argc, char** argv, Game* game);
 
+/* redraw depuis thread réseau */
+void display_request_redraw(void);
+
 #endif // DISPLAY_H_INCLUDED

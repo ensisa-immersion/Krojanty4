@@ -1,7 +1,13 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-int client(const char *ip_address, int port);
-void send_message(int client_socket, char *message);
+#include "game.h"
 
-#endif // CLIENT_H
+extern int g_client_socket;
+
+int connect_to_server(const char *ip, int port);
+int start_client_rx(Game *game);
+void send_message(int client_socket, const char *move4);
+void client_close(void);
+
+#endif

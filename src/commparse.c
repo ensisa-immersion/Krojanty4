@@ -39,18 +39,3 @@ void print_coordinates_2d_format(int coordinates[4]) {
            coordinates[0], coordinates[1], 
            coordinates[2], coordinates[3]);
 }
-
-/*
-int main() {
-    const char *test_str = "A2:C2";
-    int coords[4];
-    
-    if (parse_cell_range_to_array(test_str, coords) == 0) {
-        print_coordinates_2d_format(coords);
-    } else {
-        printf("[[],[]]\n");
-    }
-
-    return 0;
-}
-*/

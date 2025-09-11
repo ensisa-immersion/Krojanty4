@@ -1,7 +1,29 @@
 #include <gtk/gtk.h>
-#include "../include/display.h"
-#include "../include/game.h"
-#include "../include/input.h"
+
+#include "display.h"
+#include "game.h"
+#include "input.h"
+
+/* === Référence globale du DrawingArea (sert pour redraw thread-safe) === */
+static GtkWidget *g_main_drawing_area = NULL;
+
+/* === Variables pour gérer les clics source/destination === */
+static gboolean have_source = FALSE;
+static int src_r = -1, src_c = -1;
+
+/* === Fonction pour forcer le redraw depuis n'importe quel thread === */
+static gboolean force_redraw_callback(gpointer data) {
+    (void)data;
+    if (g_main_drawing_area) {
+        gtk_widget_queue_draw(g_main_drawing_area);
+        printf("[DISPLAY] Redraw forcé depuis le thread principal\n");
+    }
+    return G_SOURCE_REMOVE;
+}
+
+void display_request_redraw(void) {
+    g_idle_add(force_redraw_callback, NULL);
+}
 
 // Helper function to draw scores and messages
 void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, int grid_height) {
@@ -122,41 +144,98 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     }
 }
 
+/* ------- Gestion du clic souris -------- */
+static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gdouble y, gpointer user_data) {
+    (void)gesture;
+    (void)n_press;
+    Game *game = (Game*) user_data;
 
+    GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
+    int width = gtk_widget_get_allocated_width(widget);
+    int height = gtk_widget_get_allocated_height(widget);
 
-void activate (GtkApplication *app, gpointer user_data) {
-    GtkWidget *window;
-    GtkWidget *frame;
+    int grid_width = GRID_SIZE * CELL_SIZE;
+    int grid_height = GRID_SIZE * CELL_SIZE;
+    int start_x = (width - grid_width) / 2;
+    int start_y = (height - grid_height) / 2;
 
-    // Gets the game struct from the data slot that gtk offers (on le passe au black quoi)
-    Game* game = (Game*) user_data;
+    int col = (x - start_x) / CELL_SIZE;
+    int row = (y - start_y) / CELL_SIZE;
 
-    // Makes a window
-    window = gtk_application_window_new (app);
-    gtk_window_set_title (GTK_WINDOW (window), "Krojanty");
-    gtk_window_set_default_size (GTK_WINDOW (window), 800, 500);
-
-    // Creates drawing space
-    frame = gtk_drawing_area_new();
-    gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(frame), draw_callback, game, NULL);
-
-    // Starts listening to user input
-    detect_click(frame, game); // Should be in main.c in the future but flemme
-
-    gtk_window_set_child(GTK_WINDOW(window), frame);
-    gtk_window_present (GTK_WINDOW (window));
+    if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
+        if (!have_source) {
+            src_r = row;
+            src_c = col;
+            have_source = TRUE;
+            printf("[CLICK] Source sélectionnée: %d,%d\n", src_r, src_c);
+        } else {
+            printf("[CLICK] Destination: %d,%d\n", row, col);
+            on_user_move_decided(game, src_r, src_c, row, col);
+            have_source = FALSE; // reset
+            src_r = -1;  // reset to use the variables
+            src_c = -1;
+        }
+    }
 }
 
+/* ------- Création de la fenêtre GTK -------- */
+static void on_app_activate(GtkApplication *app, gpointer user_data) {
+    GtkWidget *window;
+    GtkWidget *frame;
+    GtkGesture *click_gesture;
+    Game* game = (Game*) user_data;
 
-// From what I understood this function initializes the display by calling activate
+    window = gtk_application_window_new(app);
+
+    /* Titre différent selon le mode */
+    const char *title;
+    switch (game->game_mode) {
+        case SERVER:
+            title = "Krojanty - Serveur (Host)";
+            break;
+        case CLIENT:
+            title = "Krojanty - Client";
+            break;
+        default:
+            title = "Krojanty - Local";
+            break;
+    }
+
+    gtk_window_set_title(GTK_WINDOW(window), title);
+    gtk_window_set_default_size(GTK_WINDOW(window), 800, 500);
+
+    frame = gtk_drawing_area_new();
+    g_main_drawing_area = frame;   // on garde une référence globale
+    gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(frame), draw_callback, game, NULL);
+
+    /* Utilise GTK4 gesture controller pour les clics */
+    click_gesture = gtk_gesture_click_new();
+    gtk_widget_add_controller(frame, GTK_EVENT_CONTROLLER(click_gesture));
+    g_signal_connect(click_gesture, "pressed", G_CALLBACK(on_mouse_click), game);
+
+    gtk_window_set_child(GTK_WINDOW(window), frame);
+    gtk_window_present(GTK_WINDOW(window));
+}
+
 int initialize_display(int argc, char** argv, Game* game) {
-    GtkApplication *app;
-    int status;
+    const char *app_id;
 
-    app = gtk_application_new ("krojanty.grp4", 0);
-    g_signal_connect (app, "activate", G_CALLBACK (activate), game);
-    status = g_application_run (G_APPLICATION (app), argc, argv);
-    g_object_unref (app);
+    /* Différents IDs d'application selon le mode */
+    switch (game->game_mode) {
+        case SERVER:
+            app_id = "krojanty.grp4.server";
+            break;
+        case CLIENT:
+            app_id = "krojanty.grp4.client";
+            break;
+        default:
+            app_id = "krojanty.grp4.local";
+            break;
+    }
 
+    GtkApplication *app = gtk_application_new(app_id, 0);
+    g_signal_connect(app, "activate", G_CALLBACK(on_app_activate), game);
+    int status = g_application_run(G_APPLICATION(app), argc, argv);
+    g_object_unref(app);
     return status;
 }

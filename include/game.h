@@ -45,6 +45,6 @@ int score_player_one(Game game);
 int score_player_two(Game game);
 void update_board(Game* game, int dst_col, int dst_row);
 Player get_player(Piece piece);
-
+int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col);
 
 #endif // GAME_H_INCLUDED
