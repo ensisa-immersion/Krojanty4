@@ -174,10 +174,8 @@ static void won(Game* game) {
         game->won = P2;
         // return 1;
     }
-        
-         
 
-    if (game->turn >= 63) {
+    if (game->turn >= 63) { // && game->won == NOT_PLAYER
         int counter = 0;
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
@@ -188,7 +186,7 @@ static void won(Game* game) {
 
         if (counter != 0) {
             
-            game->won = (game->turn % 2 == 0) ? P2 : P1; // starting turn ? 0 or 1
+            game->won = (game->turn % 2 == 0) ? P2 : P1; // Score 
             // return 1;
         } else {
             game->won = DRAW;
@@ -204,15 +202,17 @@ static void won(Game* game) {
             if (game->board[i][j] == P2_KING) is_red_king_alive++;
         }
     }
-
-    if (!is_blue_king_alive) {
-        game->won=P2;
-        // return 1;
-    } else if (!is_red_king_alive) {
-        game->won=P1;
-        // return 1;
-    } else {
-        game->won=NOT_PLAYER;
+    
+    if (!is_blue_king_alive || !is_red_king_alive) {
+        if (!is_blue_king_alive) {
+            game->won=P2;
+            // return 1;
+        } else if (!is_red_king_alive) {
+            game->won=P1;
+            // return 1;
+        } else {
+            game->won=NOT_PLAYER;
+        }
     }
 
     // return 0;

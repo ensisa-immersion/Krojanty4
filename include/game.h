@@ -11,7 +11,7 @@ typedef enum {
     NOT_PLAYER = 0,
     P1,
     P2,
-    DRAW
+    DRAW // Or we can make a Winner enum ?
 } Player;
 
 typedef enum {
