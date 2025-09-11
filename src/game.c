@@ -169,10 +169,8 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 static void won(Game* game) {
     if (game->board[8][8] == P1_KING) {
         game->won = P1;
-        // return 1;
     } else if (game->board[0][0] == P2_KING) {
         game->won = P2;
-        // return 1;
     }
 
     if (game->turn >= 63) { // && game->won == NOT_PLAYER
@@ -187,10 +185,8 @@ static void won(Game* game) {
         if (counter != 0) {
             
             game->won = (game->turn % 2 == 0) ? P2 : P1; // Score 
-            // return 1;
         } else {
             game->won = DRAW;
-            // return 8;
         }
     }
 
@@ -202,20 +198,16 @@ static void won(Game* game) {
             if (game->board[i][j] == P2_KING) is_red_king_alive++;
         }
     }
-    
+
     if (!is_blue_king_alive || !is_red_king_alive) {
         if (!is_blue_king_alive) {
             game->won=P2;
-            // return 1;
         } else if (!is_red_king_alive) {
             game->won=P1;
-            // return 1;
         } else {
             game->won=NOT_PLAYER;
         }
     }
-
-    // return 0;
 }
 
 
