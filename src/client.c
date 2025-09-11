@@ -75,9 +75,10 @@ int client(const char *ip_address, int port)
 
     pthread_t game_thread, receive_thread;
 
-    pthread_create(&game_thread, NULL, start_gui, NULL);
+    /* pthread_create(&game_thread, NULL, start_gui, NULL);
     pthread_detach(game_thread);
-    pthread_join(game_thread, NULL);
+    pthread_join(game_thread, NULL); */
+    start_gui(); // Error !
 
     pthread_create(&receive_thread, NULL, receive_message(client_socket), NULL);
     pthread_detach(receive_thread);

@@ -10,7 +10,8 @@ typedef enum {
 typedef enum {
     NOT_PLAYER = 0,
     P1,
-    P2
+    P2,
+    DRAW
 } Player;
 
 typedef enum {

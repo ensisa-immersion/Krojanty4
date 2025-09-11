@@ -1,10 +1,10 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "display.h"
-#include "game.h"
-#include "server.h"
-#include "client.h"
+#include "./include/display.h"
+#include "./include/game.h"
+#include "./include/server.h"
+#include "./include/client.h"
 
 // gcc $( pkg-config --cflags gtk4 ) -o bin/krojanty.exe src/*.c $( pkg-config --libs gtk4 ) -Iinclude
 // gcc `pkg-config --cflags gtk4` main.c src/*.c -o bin/krojanty.exe `pkg-config --libs gtk4` -Iinclude

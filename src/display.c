@@ -35,15 +35,20 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
 
     char msg[100];
     if (game->won != 0) {
-        if (game->won == 2) {
+        if (game->won == DRAW) {
             snprintf(msg, sizeof(msg), "Egalite!");
-        } else if (game->won == 1) {
+        } /* else if (game->won == 1) {
             if (game->turn % 2 == 0) {
                 snprintf(msg, sizeof(msg), "Joueur 1 a gagner!");
             } else {
                 snprintf(msg, sizeof(msg), "Joueur 2 a gagner!");
             }
-        }
+        } */ 
+            else if (game->won==P1) {
+                snprintf(msg, sizeof(msg), "Joueur 1 (Bleu) a gagner!");
+            } else if (game->won==P2) {
+                snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagner!");
+            }
     } else {
         snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
     }
