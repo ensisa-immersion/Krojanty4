@@ -234,18 +234,70 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
                 cairo_set_source_rgb(cr, 1.0, 1.0, 0.7); // Jaune clair
             }
 
+            // Dessiner le rectangle de la cellule
+            cairo_rectangle(cr, start_x + i * CELL_SIZE, start_y + j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            cairo_fill_preserve(cr);
             cairo_set_source_rgb(cr, 0, 0, 0);
             cairo_set_line_width(cr, 1.5f);
             cairo_stroke(cr);
 
-            // Dessiner les points gris pour les mouvements possibles
+            // Dessiner les pièces par-dessus le fond
+            if (tile != P_NONE) {
+                const char *symbol = NULL;
+
+                // Détection des bases (coins uniquement)
+                if ((i == 0 && j == 0) || (i == 8 && j == 8)) {
+                    symbol = "🏰"; // Château seulement dans les vrais coins (A9 et I1)
+                } else if (tile == P1_KING || tile == P2_KING) {
+                    symbol = "♔";
+                } else if (tile == P1_PAWN || tile == P2_PAWN) {
+                    symbol = "♜";
+                } else {
+                    symbol = "⚑";
+                }
+
+                // Couleur de la pièce selon l'équipe
+                switch (tile) {
+                    case P1_PAWN:
+                    case P1_KING:
+                        cairo_set_source_rgb(cr, 0.1, 0.4, 0.8); // Bleu pour P1
+                        break;
+                    case P2_PAWN:
+                    case P2_KING:
+                        cairo_set_source_rgb(cr, 0.8, 0.1, 0.1); // Rouge pour P2
+                        break;
+                }
+
+                // Afficher le symbole
+                cairo_select_font_face(cr, "DejaVu Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+                cairo_set_font_size(cr, CELL_SIZE * 0.7);
+
+                cairo_text_extents_t extents;
+                cairo_text_extents(cr, symbol, &extents);
+                double text_x = start_x + i * CELL_SIZE + (CELL_SIZE - extents.width) / 2 - extents.x_bearing;
+                double text_y = start_y + j * CELL_SIZE + (CELL_SIZE + extents.height) / 2;
+
+                cairo_move_to(cr, text_x, text_y);
+                cairo_show_text(cr, symbol);
+            }
+
+            // Dessiner les points gris pour les mouvements possibles PAR-DESSUS les pièces
             if (have_source && is_possible_move(j, i)) {
-                cairo_set_source_rgb(cr, 0.5, 0.5, 0.5); // Gris
+                cairo_set_source_rgb(cr, 0.3, 0.3, 0.3); // Gris foncé pour mieux voir
                 cairo_arc(cr,
                          start_x + i * CELL_SIZE + CELL_SIZE / 2,
                          start_y + j * CELL_SIZE + CELL_SIZE / 2,
-                         8, 0, 2 * M_PI);
+                         12, 0, 2 * G_PI);
                 cairo_fill(cr);
+
+                // Contour blanc pour le contraste
+                cairo_set_source_rgb(cr, 1, 1, 1);
+                cairo_set_line_width(cr, 2);
+                cairo_arc(cr,
+                         start_x + i * CELL_SIZE + CELL_SIZE / 2,
+                         start_y + j * CELL_SIZE + CELL_SIZE / 2,
+                         12, 0, 2 * G_PI);
+                cairo_stroke(cr);
             }
         }
     }
