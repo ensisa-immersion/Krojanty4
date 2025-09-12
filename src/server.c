@@ -52,8 +52,9 @@ static void *server_client_rx(void *arg) {
         if (r == 1) {
             printf("[SERVER] Reçu coup client: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
 
-            /* APPLICATION IMMÉDIATE côté serveur */
+            /* Le serveur applique le coup reçu du client (joueur 2) */
             if (game) {
+                printf("[SERVER] Application coup client sur interface serveur\n");
                 post_move_to_gtk(game, m);
             }
 

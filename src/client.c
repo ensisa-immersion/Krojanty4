@@ -67,9 +67,10 @@ static void *client_rx_thread(void *arg) {
     for (;;) {
         int r = read_exact(s, m, 4);
         if (r == 1) {
-            printf("[CLIENT] Reçu coup: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
+            printf("[CLIENT] Reçu coup serveur: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
 
-            /* APPLICATION IMMÉDIATE - pas de vérification */
+            /* Le client applique le coup reçu du serveur (joueur 1) */
+            printf("[CLIENT] Application coup serveur sur interface client\n");
             post_move_to_gtk(game, m);
 
         } else if (r == 0) {

@@ -221,30 +221,8 @@ static void won(Game* game) {
 
 // Update pieces in a LAN game
 int update_board_lan(Game* game) {
-    if (game->game_mode == SERVER && game->turn % 2 == 0) {
-        int opponent_src_row = 0;
-        int opponent_dst_row = 0;
-        int opponent_src_col = 3;
-        int opponent_dst_col = 5;
-        if (!is_move_legal(game, opponent_src_row, opponent_src_col, opponent_dst_row, opponent_dst_col)) return 0;
-
-        game->selected_tile[0] = opponent_src_row;
-        game->selected_tile[1] = opponent_src_col;
-
-        update_board(game, opponent_dst_row, opponent_dst_col);
-    } else if (game->game_mode == CLIENT && game->turn % 2 == 1) {
-        int opponent_src_row = 8;
-        int opponent_dst_row = 8;
-        int opponent_src_col = 5;
-        int opponent_dst_col = 3;
-        if (!is_move_legal(game, opponent_src_row, opponent_src_col, opponent_dst_row, opponent_dst_col)) return 0;
-
-        game->selected_tile[0] = opponent_src_row;
-        game->selected_tile[1] = opponent_src_col;
-
-        update_board(game, opponent_dst_row, opponent_dst_col);
-    }
-
+    // Plus de coups automatiques - la synchronisation se fait via le réseau
+    (void)game; // Éviter le warning de paramètre non utilisé
     return 1;
 }
 
@@ -299,7 +277,7 @@ void update_board(Game *game, int dst_row, int dst_col) {
         game->selected_tile[0] = -1;
         game->selected_tile[1] = -1;
 
-        int next_move_status = update_board_lan(game);
+        int next_move_status __attribute__((unused)) = update_board_lan(game);
     }
 }
 

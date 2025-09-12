@@ -33,19 +33,28 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         display_request_redraw();
 
     } else {
-        /* Mode réseau : TOUJOURS envoyer au serveur, même si on EST le serveur */
+        /* Mode réseau : appliquer le coup localement ET l'envoyer à l'adversaire */
         printf("[MOVE] Envoi coup: %s (Tour %d)\n", move, game->turn);
 
         if (game->game_mode == CLIENT && g_client_socket >= 0) {
-            send_message(g_client_socket, move);
-        } else if (game->game_mode == SERVER && g_server_client_socket >= 0) {
-            /* Le serveur s'envoie le coup à lui-même via le système réseau */
-            send_message_to_client(g_server_client_socket, move);
-            /* ET applique directement pour l'instant (sera refactorisé) */
+            /* CLIENT : applique son coup localement et l'envoie au serveur */
             game->selected_tile[0] = src_r;
             game->selected_tile[1] = src_c;
             update_board(game, dst_r, dst_c);
             display_request_redraw();
+            
+            /* Envoie au serveur */
+            send_message(g_client_socket, move);
+            
+        } else if (game->game_mode == SERVER && g_server_client_socket >= 0) {
+            /* SERVEUR : applique son coup localement et l'envoie au client */
+            game->selected_tile[0] = src_r;
+            game->selected_tile[1] = src_c;
+            update_board(game, dst_r, dst_c);
+            display_request_redraw();
+            
+            /* Envoie au client */
+            send_message_to_client(g_server_client_socket, move);
         }
     }
 }

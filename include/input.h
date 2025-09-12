@@ -3,8 +3,6 @@
 
 #include "game.h"
 
-static void on_click(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data);
-
 /* fonction pour traiter un mouvement décidé par l'utilisateur */
 void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c);
 
