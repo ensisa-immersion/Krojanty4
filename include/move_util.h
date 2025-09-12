@@ -5,8 +5,8 @@
 #include "game.h"
 #include "display.h"
 
-/* Mappage des colonnes sans 'I' (Shōgi-like) */
-static const char COLS_MAP[10] = "ABCDEFGHJ";
+/* Mappage des colonnes A-I */
+static const char COLS_MAP[10] = "ABCDEFGHI";
 
 static inline int col_from_letter(char L) {
     for (int i = 0; i < 9; i++) if (COLS_MAP[i] == L) return i;
@@ -33,20 +33,20 @@ static inline gboolean apply_move_idle(gpointer data) {
 }
 
 /* Convertit "A2B2" → indices (0..8) et poste vers le thread GTK */
-void post_move_to_gtk(Game *game, const char *move4);
-//     int sc = col_from_letter(m[0]);
-//     int sr = (m[1] - '1');
-//     int dc = col_from_letter(m[2]);
-//     int dr = (m[3] - '1');
+static inline void post_move_to_gtk(Game *game, const char m[4]) {
+    int sc = col_from_letter(m[0]);
+    int sr = 9 - (m[1] - '0');  // Inversion: ligne 9 → index 0, ligne 1 → index 8
+    int dc = col_from_letter(m[2]);
+    int dr = 9 - (m[3] - '0');  // Inversion: ligne 9 → index 0, ligne 1 → index 8
 
-//     if (sc < 0 || dc < 0 || sr < 0 || sr > 8 || dr < 0 || dr > 8) {
-//         g_warning("[RX] Mouvement invalide: %c%c%c%c", m[0],m[1],m[2],m[3]);
-//         return;
-//     }
+    if (sc < 0 || dc < 0 || sr < 0 || sr > 8 || dr < 0 || dr > 8) {
+        g_warning("[RX] Mouvement invalide: %c%c%c%c", m[0],m[1],m[2],m[3]);
+        return;
+    }
 
-//     MoveTask *t = g_new0(MoveTask, 1);
-//     t->game = game; t->sr = sr; t->sc = sc; t->dr = dr; t->dc = dc;
-//     g_idle_add(apply_move_idle, t);
-// }
+    MoveTask *t = g_new0(MoveTask, 1);
+    t->game = game; t->sr = sr; t->sc = sc; t->dr = dr; t->dc = dc;
+    g_idle_add(apply_move_idle, t);
+}
 
 #endif /* MOVE_UTIL_H */

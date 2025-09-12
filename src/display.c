@@ -234,8 +234,8 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
             snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
         } else {
             /* Mode réseau : indiquer qui doit jouer */
-            int is_server_turn = (game->turn % 2 == 0);
-            const char* current_player = is_server_turn ? "Serveur (Bleu)" : "Client (Rouge)";
+            int is_server_turn = (game->turn % 2 == 1);
+            const char* current_player = is_server_turn ? "Serveur (Rouge)" : "Client (Bleu)";
             const char* your_turn = "";
             
             if ((game->game_mode == SERVER && is_server_turn) ||
@@ -257,6 +257,33 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
 
     cairo_move_to(cr, text_x, text_y);
     cairo_show_text(cr, msg);
+
+    // Afficher les coordonnées de la grille
+    cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+    cairo_set_font_size(cr, 16.0);
+    cairo_set_source_rgb(cr, 0, 0, 0);
+
+    // Labels des colonnes (A-I) en haut
+    for (int i = 0; i < GRID_SIZE; i++) {
+        char col_label[2] = {'A' + i, '\0'};
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, col_label, &extents);
+        double text_x = start_x + i * CELL_SIZE + (CELL_SIZE - extents.width) / 2 - extents.x_bearing;
+        double text_y = start_y - 5;
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, col_label);
+    }
+
+    // Labels des lignes (9-1) à gauche (ordre inversé)
+    for (int j = 0; j < GRID_SIZE; j++) {
+        char row_label[2] = {'9' - j, '\0'};
+        cairo_text_extents_t extents;
+        cairo_text_extents(cr, row_label, &extents);
+        double text_x = start_x - 20;
+        double text_y = start_y + j * CELL_SIZE + (CELL_SIZE + extents.height) / 2;
+        cairo_move_to(cr, text_x, text_y);
+        cairo_show_text(cr, row_label);
+    }
     cairo_stroke(cr);
 }
 
@@ -269,9 +296,9 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
 
     // Background
     if (game->turn % 2 == 0) {
-        cairo_set_source_rgb(cr, 0.8, 0.9, 1);
+        cairo_set_source_rgb(cr, 0.8, 0.9, 1); // Bleu pour client
     } else {
-        cairo_set_source_rgb(cr, 1, 0.8, 0.8);
+        cairo_set_source_rgb(cr, 1, 0.8, 0.8); // Rouge pour serveur
     }
     cairo_paint(cr);
 

@@ -131,7 +131,7 @@ Player get_player(Piece piece) {
 // Helper function to assure pawns are eating eachother
 void did_eat(Game* game, int row, int col, Direction sprint_direction) {
     Player opponent = (game->turn % 2 == 0) ? P2 : P1;
-    Player player = (game->turn % 2 == 1) ? P2 : P1;
+    Player player = (game->turn % 2 == 0) ? P1 : P2;
 
     Player top = (row - 1 >= 0)? get_player(game->board[row - 1][col]) : NOT_PLAYER;
     Player left = (col - 1 >= 0)? get_player(game->board[row][col - 1]) : NOT_PLAYER;
@@ -192,7 +192,7 @@ static void won(Game* game) {
 
         if (counter != 0) {
             
-            game->won = (game->turn % 2 == 0) ? P2 : P1; // Score 
+            game->won = (game->turn % 2 == 0) ? P1 : P2; // Score 
         } else {
             game->won = DRAW;
         }
