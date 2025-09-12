@@ -192,7 +192,7 @@ static void won(Game* game) {
 
         if (counter != 0) {
             
-            game->won = (game->turn % 2 == 0) ? P1 : P2; // Score 
+            game->won = (game->turn % 2 == 0) ? P1 : P2; // Score
         } else {
             game->won = DRAW;
         }

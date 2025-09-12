@@ -20,9 +20,9 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
     /* Prépare le message de mouvement */
     char move[5];
     move[0] = COLS_MAP[src_c];
-    move[1] = (char)('9' - src_r);  // Inversion: index 0 → ligne 9, index 8 → ligne 1
+    move[1] = (char)('9' - src_r); // Inversion: index 0 → ligne 9, index 8 → ligne 1
     move[2] = COLS_MAP[dst_c];
-    move[3] = (char)('9' - dst_r);  // Inversion: index 0 → ligne 9, index 8 → ligne 1
+    move[3] = (char)('9' - dst_r); // Inversion: index 0 → ligne 9, index 8 → ligne 1
     move[4] = '\0'; /* pour logs */
 
     if (game->game_mode == LOCAL) {
@@ -37,7 +37,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         printf("[MOVE] Tentative coup: %s (Tour %d)\n", move, game->turn);
 
         /* VALIDATION DU TOUR */
-        int is_server_turn = (game->turn % 2 == 1);  // Tours impairs = serveur (rouge)
+        int is_server_turn = (game->turn % 2 == 1);  // Tours impaires = serveur (rouge)
         int is_client_turn = (game->turn % 2 == 0);  // Tours pairs = client (bleu)
         
         if (game->game_mode == SERVER && !is_server_turn) {
@@ -60,7 +60,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
             
             /* Envoie au serveur */
             send_message(g_client_socket, move);
-            
+
         } else if (game->game_mode == SERVER && g_server_client_socket >= 0 && is_server_turn) {
             /* SERVEUR : applique son coup localement et l'envoie au client */
             printf("[MOVE] SERVEUR joue son tour %d\n", game->turn);
