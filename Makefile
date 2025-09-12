@@ -7,6 +7,10 @@ LDFLAGS := -lpthread $(shell pkg-config --libs gtk4)
 SRC_DIR := src
 BUILD_DIR := build
 DOCS_DIR := docs
+ASSETS_DIR := assets
+
+GRESSOURCE_XML = assets.gresource.xml
+GRESOURCE_C = $(BUILD_DIR)
 
 SRC := $(wildcard $(SRC_DIR)/*.c) main.c
 BIN := $(BUILD_DIR)/game

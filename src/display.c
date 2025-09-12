@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-
 #include "display.h"
 #include "game.h"
 #include "input.h"
@@ -10,6 +9,11 @@ static GtkWidget *g_main_drawing_area = NULL;
 /* === Variables pour gérer les clics source/destination === */
 static gboolean have_source = FALSE;
 static int src_r = -1, src_c = -1;
+
+/* === Variables pour stocker les mouvements possibles === */
+#define MAX_POSSIBLE_MOVES 64
+static int possible_moves[MAX_POSSIBLE_MOVES][2];
+static int num_possible_moves = 0;
 
 /* === Fonction pour forcer le redraw depuis n'importe quel thread === */
 static gboolean force_redraw_callback(gpointer data) {
@@ -23,6 +27,56 @@ static gboolean force_redraw_callback(gpointer data) {
 
 void display_request_redraw(void) {
     g_idle_add(force_redraw_callback, NULL);
+}
+
+/* === Calculer les mouvements possibles pour une pièce === */
+static void calculate_possible_moves(Game *game, int row, int col) {
+    num_possible_moves = 0;
+
+    if (!game || row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) {
+        return;
+    }
+
+    // Vérifier toutes les positions possibles dans les 4 directions
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}; // haut, bas, gauche, droite
+
+    for (int dir = 0; dir < 4; dir++) {
+        int dr = directions[dir][0];
+        int dc = directions[dir][1];
+
+        // Explorer dans cette direction jusqu'à ce qu'on trouve un obstacle ou le bord
+        for (int dist = 1; dist < GRID_SIZE; dist++) {
+            int new_row = row + dr * dist;
+            int new_col = col + dc * dist;
+
+            // Vérifier les limites
+            if (new_row < 0 || new_row >= GRID_SIZE || new_col < 0 || new_col >= GRID_SIZE) {
+                break;
+            }
+
+            // Utiliser is_move_legal pour vérifier si ce mouvement est valide
+            if (is_move_legal(game, row, col, new_row, new_col)) {
+                if (num_possible_moves < MAX_POSSIBLE_MOVES) {
+                    possible_moves[num_possible_moves][0] = new_row;
+                    possible_moves[num_possible_moves][1] = new_col;
+                    num_possible_moves++;
+                }
+            } else {
+                // Si ce mouvement n'est pas légal, arrêter dans cette direction
+                break;
+            }
+        }
+    }
+}
+
+/* === Vérifier si une position est dans la liste des mouvements possibles === */
+static gboolean is_possible_move(int row, int col) {
+    for (int i = 0; i < num_possible_moves; i++) {
+        if (possible_moves[i][0] == row && possible_moves[i][1] == col) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 // Helper function to draw scores and messages
@@ -65,7 +119,7 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
             } else {
                 snprintf(msg, sizeof(msg), "Joueur 2 a gagner!");
             }
-        } */ 
+        } */
             else if (game->won==P1) {
                 snprintf(msg, sizeof(msg), "Joueur 1 (Bleu) a gagner!");
             } else if (game->won==P2) {
@@ -80,14 +134,14 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
             int is_server_turn = (game->turn % 2 == 1);
             const char* current_player = is_server_turn ? "Serveur (Rouge)" : "Client (Bleu)";
             const char* your_turn = "";
-            
+
             if ((game->game_mode == SERVER && is_server_turn) ||
                 (game->game_mode == CLIENT && !is_server_turn)) {
                 your_turn = " - VOTRE TOUR";
             } else {
                 your_turn = " - Tour adversaire";
             }
-            
+
             snprintf(msg, sizeof(msg), "Tour %d: %s%s", game->turn + 1, current_player, your_turn);
         }
     }
@@ -158,6 +212,7 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
             int tile = game->board[j][i];
             int visited = game->last_visited[j][i];
 
+            // Couleur de base de la cellule
             if (i + j == 0) {
                 cairo_set_source_rgb(cr, 0.85, 0.85, 0.90);
             } else if (i + j == 16) {
@@ -166,6 +221,7 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
                 cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
             }
 
+            // Couleur de la cellule visitée
             switch (visited) {
                 case P1_PAWN: cairo_set_source_rgb(cr, 0.85, 0.95, 1); break;
                 case P2_PAWN: cairo_set_source_rgb(cr, 1, 0.85, 0.85); break;
@@ -173,18 +229,24 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
                 case P2_KING: cairo_set_source_rgb(cr, 1, 0.85, 0.85); break;
             }
 
-            switch (tile) {
-                case P1_PAWN: cairo_set_source_rgb(cr, 0.1, 0.7, 0.8); break;
-                case P2_PAWN: cairo_set_source_rgb(cr, 0.95, 0.3, 0.1); break;
-                case P1_KING: cairo_set_source_rgb(cr, 0.1, 0.4, 0.5); break;
-                case P2_KING: cairo_set_source_rgb(cr, 0.7, 0.2, 0.1); break;
+            // Highlighting de la cellule sélectionnée
+            if (have_source && src_r == j && src_c == i) {
+                cairo_set_source_rgb(cr, 1.0, 1.0, 0.7); // Jaune clair
             }
 
-            cairo_rectangle(cr, start_x + i * CELL_SIZE, start_y + j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-            cairo_fill_preserve(cr);
             cairo_set_source_rgb(cr, 0, 0, 0);
             cairo_set_line_width(cr, 1.5f);
             cairo_stroke(cr);
+
+            // Dessiner les points gris pour les mouvements possibles
+            if (have_source && is_possible_move(j, i)) {
+                cairo_set_source_rgb(cr, 0.5, 0.5, 0.5); // Gris
+                cairo_arc(cr,
+                         start_x + i * CELL_SIZE + CELL_SIZE / 2,
+                         start_y + j * CELL_SIZE + CELL_SIZE / 2,
+                         8, 0, 2 * M_PI);
+                cairo_fill(cr);
+            }
         }
     }
 }
@@ -209,16 +271,33 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
 
     if (col >= 0 && col < GRID_SIZE && row >= 0 && row < GRID_SIZE) {
         if (!have_source) {
-            src_r = row;
-            src_c = col;
-            have_source = TRUE;
-            printf("[CLICK] Source sélectionnée: %d,%d\n", src_r, src_c);
+            // Vérifier qu'il y a une pièce à cette position
+            if (game->board[row][col] != P_NONE) {
+                src_r = row;
+                src_c = col;
+                have_source = TRUE;
+
+                // Calculer les mouvements possibles pour cette pièce
+                calculate_possible_moves(game, row, col);
+
+                printf("[CLICK] Source sélectionnée: %d,%d (%d mouvements possibles)\n",
+                       src_r, src_c, num_possible_moves);
+
+                // Redessiner pour afficher la sélection et les points
+                gtk_widget_queue_draw(g_main_drawing_area);
+            }
         } else {
             printf("[CLICK] Destination: %d,%d\n", row, col);
             on_user_move_decided(game, src_r, src_c, row, col);
-            have_source = FALSE; // reset
-            src_r = -1;  // reset to use the variables
+
+            // Réinitialiser la sélection
+            have_source = FALSE;
+            src_r = -1;
             src_c = -1;
+            num_possible_moves = 0;
+
+            // Redessiner pour effacer la sélection et les points
+            gtk_widget_queue_draw(g_main_drawing_area);
         }
     }
 }
