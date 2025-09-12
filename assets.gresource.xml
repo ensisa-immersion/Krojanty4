@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+    <gresource prefix="/krojanty/assets">
+        <file>cite.svg</file>
+        <file>couronne.svg</file>
+        <file>soldat.svg</file>
+    </gresource>
+</gresources>
