@@ -27,7 +27,8 @@ export HELP_BODY
 docs:
 	cd $(DOCS_DIR) && doxygen Doxyfile
 
-compile: $(BIN)
+compile:
+	gcc main.c src/*.c -o ./build/game $(shell pkg-config --cflags --libs gtk4 librsvg-2.0) -lpthread -Iinclude
 
 $(BIN): $(SRC)
 	@mkdir -p $(BUILD_DIR)
