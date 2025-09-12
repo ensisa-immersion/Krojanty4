@@ -33,11 +33,26 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         display_request_redraw();
 
     } else {
-        /* Mode réseau : appliquer le coup localement ET l'envoyer à l'adversaire */
-        printf("[MOVE] Envoi coup: %s (Tour %d)\n", move, game->turn);
+        /* Mode réseau : vérifier que c'est le bon tour avant d'autoriser le coup */
+        printf("[MOVE] Tentative coup: %s (Tour %d)\n", move, game->turn);
 
-        if (game->game_mode == CLIENT && g_client_socket >= 0) {
+        /* VALIDATION DU TOUR */
+        int is_server_turn = (game->turn % 2 == 0);  // Tours pairs = serveur
+        int is_client_turn = (game->turn % 2 == 1);  // Tours impairs = client
+        
+        if (game->game_mode == SERVER && !is_server_turn) {
+            printf("[MOVE] REFUSÉ - Pas le tour du serveur (tour %d)\n", game->turn);
+            return;
+        }
+        
+        if (game->game_mode == CLIENT && !is_client_turn) {
+            printf("[MOVE] REFUSÉ - Pas le tour du client (tour %d)\n", game->turn);
+            return;
+        }
+
+        if (game->game_mode == CLIENT && g_client_socket >= 0 && is_client_turn) {
             /* CLIENT : applique son coup localement et l'envoie au serveur */
+            printf("[MOVE] CLIENT joue son tour %d\n", game->turn);
             game->selected_tile[0] = src_r;
             game->selected_tile[1] = src_c;
             update_board(game, dst_r, dst_c);
@@ -46,8 +61,9 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
             /* Envoie au serveur */
             send_message(g_client_socket, move);
             
-        } else if (game->game_mode == SERVER && g_server_client_socket >= 0) {
+        } else if (game->game_mode == SERVER && g_server_client_socket >= 0 && is_server_turn) {
             /* SERVEUR : applique son coup localement et l'envoie au client */
+            printf("[MOVE] SERVEUR joue son tour %d\n", game->turn);
             game->selected_tile[0] = src_r;
             game->selected_tile[1] = src_c;
             update_board(game, dst_r, dst_c);

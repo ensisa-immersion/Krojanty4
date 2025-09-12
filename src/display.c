@@ -52,7 +52,7 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
 
     // Win message or turn message
     cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, 32.0);
+    cairo_set_font_size(cr, 24.0); // Réduit de 32 à 24 pour les messages plus longs
     cairo_set_source_rgb(cr, 0, 0, 0);
 
     char msg[100];
@@ -72,7 +72,24 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
                 snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagner!");
             }
     } else {
-        snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
+        /* Afficher le tour et qui doit jouer */
+        if (game->game_mode == LOCAL) {
+            snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
+        } else {
+            /* Mode réseau : indiquer qui doit jouer */
+            int is_server_turn = (game->turn % 2 == 0);
+            const char* current_player = is_server_turn ? "Serveur (Bleu)" : "Client (Rouge)";
+            const char* your_turn = "";
+            
+            if ((game->game_mode == SERVER && is_server_turn) ||
+                (game->game_mode == CLIENT && !is_server_turn)) {
+                your_turn = " - VOTRE TOUR";
+            } else {
+                your_turn = " - Tour adversaire";
+            }
+            
+            snprintf(msg, sizeof(msg), "Tour %d: %s%s", game->turn + 1, current_player, your_turn);
+        }
     }
 
     cairo_text_extents_t extents;
