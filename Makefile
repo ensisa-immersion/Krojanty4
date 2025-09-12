@@ -7,6 +7,14 @@ LDFLAGS := -lpthread $(shell pkg-config --libs gtk4)
 SRC_DIR := src
 BUILD_DIR := build
 DOCS_DIR := docs
+ASSETS_DIR := assets
+
+# Ressources
+GRESOURCE_XML = assets.gresource.xml
+GRESOURCE_C = $(BUILDDIR)/resources.c
+GRESOURCE_H = $(BUILDDIR)/resources.h
+
+
 
 SRC := $(wildcard $(SRC_DIR)/*.c) main.c
 BIN := $(BUILD_DIR)/game
@@ -22,7 +30,7 @@ Commands:
 endef
 export HELP_BODY
 
-.PHONY: docs compile clean help
+.PHONY: docs compile clean help assets
 
 docs:
 	cd $(DOCS_DIR) && doxygen Doxyfile
@@ -34,8 +42,10 @@ $(BIN): $(SRC)
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
 
-clean:
-	rm -f $(BUILD_DIR)/*
+# Génération des ressources
+assets:
+	glib-compile-resources assets.gresource.xml --sourcedir assets --generate
 
-help:
-	@echo "$$HELP_BODY"
+# Compilation des objets
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c
+	$(CC) $(CFLAGS) -I$(BUILDDIR) -c
