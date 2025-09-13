@@ -12,7 +12,7 @@
 #include "netutil.h"
 #include "move_util.h"
 
-/* Socket client global (si déjà déclaré ailleurs, garde une seule def) */
+/* Socket client global*/
 int g_client_socket = -1;
 
 /* ===== Connexion au serveur ===== */

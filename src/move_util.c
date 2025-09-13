@@ -14,7 +14,7 @@ int col_from_letter(char L) {
 /* Exécuté dans le thread GTK (via g_idle_add) */
 gboolean apply_move_idle(gpointer data) {
     MoveTask *t = (MoveTask*)data;
-    /* 1) positionne la case source (si ton update_board lit selected_tile) */
+    /* 1) positionne la case source*/
     t->game->selected_tile[0] = t->sr;
     t->game->selected_tile[1] = t->sc;
     /* 2) applique la destination */

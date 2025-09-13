@@ -113,18 +113,23 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
     if (game->won != 0) {
         if (game->won == DRAW) {
             snprintf(msg, sizeof(msg), "Egalite!");
-        } /* else if (game->won == 1) {
-            if (game->turn % 2 == 0) {
-                snprintf(msg, sizeof(msg), "Joueur 1 a gagner!");
-            } else {
-                snprintf(msg, sizeof(msg), "Joueur 2 a gagner!");
-            }
-        } */
-            else if (game->won==P1) {
-                snprintf(msg, sizeof(msg), "Joueur 1 (Bleu) a gagner!");
-            } else if (game->won==P2) {
-                snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagner!");
-            }
+        } else if (game->won==P1) {
+            snprintf(msg, sizeof(msg), "Joueur 1 (Bleu) a gagne!");
+        } else if (game->won==P2) {
+            snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagne!");
+        }
+        
+        // Désactiver les interactions une fois la partie terminée
+        /*
+        - Have_source -> Pour désactiver la sélection de source
+        - Num_possible_moves -> Pour désactiver la sélection de destination
+        - Src_r, Src_c -> Pour réinitialiser la position de la source
+        */
+        have_source = FALSE;
+        src_r = -1;
+        src_c = -1;
+        num_possible_moves = 0;
+
     } else {
         /* Afficher le tour et qui doit jouer */
         if (game->game_mode == LOCAL) {
