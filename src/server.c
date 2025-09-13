@@ -11,8 +11,6 @@
 #include "netutil.h"
 #include "move_util.h"
 
-/* Petit serveur 1v1: accepte 2 clients, relaye les coups (4 octets) */
-
 /* Socket du client connecté (pour que le serveur puisse lui envoyer ses coups) */
 int g_server_client_socket = -1;
 
@@ -37,7 +35,7 @@ void send_message_to_client(int server_socket, const char *move4) {
 typedef struct {
     int me_sock;
     int other_sock;
-    Game *game;     /* si serveur-host applique aussi localement, utiliser post_move_to_gtk */
+    Game *game;     /* si serveur-host applique aussi localement utiliser post_move_to_gtk */
 } SrvRxCtx;
 
 static void *server_client_rx(void *arg) {
@@ -58,7 +56,7 @@ static void *server_client_rx(void *arg) {
                 post_move_to_gtk(game, m);
             }
 
-            /* Relais au pair (pour mode 2 clients) - pour l'instant non utilisé */
+            /* Relais au pair (pour mode 2 clients)*/
             if (other >= 0) {
                 if (send_all(other, m, 4) == -1) {
                     perror("[SERVER] send_all to peer");
@@ -144,14 +142,12 @@ int run_server_1v1(Game *game, int port) {
     }
     pthread_detach(thB);
 
-    /* Le serveur garde l’écoute ouverte (ou pas selon ton design) */
     /* Ici on ferme l’écoute pour un match 1v1 fixe */
     close(ls);
     printf("[SERVER] Match lancé. RX threads actifs.\n");
     return 0;
 }
 
-/* Version simplifiée: serveur = joueur 1, attend 1 client = joueur 2 */
 int run_server_host(Game *game, int port) {
     int ls = create_listen_socket(port);
     if (ls < 0) return -1;
@@ -171,7 +167,7 @@ int run_server_host(Game *game, int port) {
     pthread_t client_thread;
     SrvRxCtx *client_ctx = (SrvRxCtx*)malloc(sizeof(*client_ctx));
     client_ctx->me_sock = client_sock;
-    client_ctx->other_sock = -1; // Le serveur ne relaye pas, il traite directement
+    client_ctx->other_sock = -1;
     client_ctx->game = game;
 
     if (pthread_create(&client_thread, NULL, server_client_rx, client_ctx) != 0) {

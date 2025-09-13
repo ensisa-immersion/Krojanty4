@@ -86,7 +86,7 @@ static void *client_rx_thread(void *arg) {
     return NULL;
 }
 
-/* Démarrage du RX (à appeler après connect) */
+/* Démarrage du RX*/
 int start_client_rx(Game *game) {
     if (g_client_socket < 0) return -1;
     pthread_t th;
@@ -103,7 +103,6 @@ int start_client_rx(Game *game) {
     return 0;
 }
 
-/* (optionnel) Fermeture propre */
 void client_close(void) {
     if (g_client_socket >= 0) {
         close(g_client_socket);
