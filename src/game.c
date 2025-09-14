@@ -27,7 +27,6 @@ Game init_game(GameMode mode, int artificial_intelligence) {
     // initialise les états
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
-            game.last_visited[i][j] = starting_board[i][j];
             game.board[i][j] = starting_board[i][j];
         }
     }
@@ -48,8 +47,8 @@ int score_player_one(Game game) {
     int player_one_score = 0;
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
-            if (get_player(game.last_visited[i][j]) == P1) player_one_score++;
-            if (get_player(game.board[i][j]) == P1) player_one_score++;
+            if (game.board[i][j] == P1_VISITED) player_one_score++;
+            if (get_player(game.board[i][j]) == P1) player_one_score += 2;
         }
     }
     return player_one_score;
@@ -60,8 +59,8 @@ int score_player_two(Game game) {
     int player_two_score = 0;
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
-            if (get_player(game.last_visited[i][j]) == P2) player_two_score++;
-            if (get_player(game.board[i][j]) == P2) player_two_score++;
+            if (game.board[i][j] == P2_VISITED) player_two_score++;
+            if (get_player(game.board[i][j]) == P2) player_two_score += 2;
         }
     }
     return player_two_score;
@@ -87,13 +86,13 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     if (dst_row < 0 || dst_row >= GRID_SIZE || dst_col < 0 || dst_col >= GRID_SIZE) return 0;
 
     // Must have a piece at source
-    if (game->board[src_row][src_col] == P_NONE) return 0;
+    if (get_player(game->board[src_row][src_col]) == NOT_PLAYER) return 0;
 
     // Must move straight (horizontal or vertical)
     if (src_row != dst_row && src_col != dst_col) return 0;
 
     // Destination must be empty
-    if (game->board[dst_row][dst_col] != P_NONE) return 0;
+    if (get_player(game->board[dst_row][dst_col]) != NOT_PLAYER) return 0;
 
     // Check turn ownership
     if ((game->turn % 2 == 0) &&
@@ -105,7 +104,7 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     if (src_row == dst_row) {
         int step = (dst_col > src_col) ? 1 : -1;
         for (int c = src_col + step; c != dst_col; c += step) {
-            if (game->board[src_row][c] != P_NONE) return 0; // blocked
+            if (get_player(game->board[src_row][c]) != NOT_PLAYER) return 0; // blocked
         }
     }
 
@@ -113,7 +112,7 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     if (src_col == dst_col) {
         int step = (dst_row > src_row) ? 1 : -1;
         for (int r = src_row + step; r != dst_row; r += step) {
-            if (game->board[r][src_col] != P_NONE) return 0; // blocked
+            if (get_player(game->board[r][src_col]) != NOT_PLAYER) return 0; // blocked
         }
     }
 
@@ -191,7 +190,7 @@ static void won(Game* game) {
         }
 
         if (counter != 0) {
-            
+
             game->won = (game->turn % 2 == 0) ? P1 : P2; // Score
         } else {
             game->won = DRAW;
@@ -238,10 +237,7 @@ void update_board(Game *game, int dst_row, int dst_col) {
     if (is_move_legal(game, src_row, src_col, dst_row, dst_col)) {
         // Move piece
         game->board[dst_row][dst_col] = game->board[src_row][src_col];
-        game->board[src_row][src_col] = P_NONE;
-
-        Piece last_piece = game->board[dst_row][dst_col];
-        game->last_visited[dst_row][dst_col] = last_piece;
+        game->board[src_row][src_col] = (get_player(game->board[src_row][src_col]) == P1) ? P1_VISITED : P2_VISITED;
 
         // Check if someone was eaten
         Direction direction;
