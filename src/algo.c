@@ -23,7 +23,7 @@ void update_board_ai(Game * game, int dst_row, int dst_col) {
     did_eat(game, dst_row, dst_col, direction);
 
     // Handle wins
-    int has_won = won(game);
+    int has_won = 1;
     if (has_won) {
         game->won = has_won;
         return;
@@ -48,7 +48,7 @@ int utility(Game * game, Player player) {
     int score_one = 10 * score_player_one(*game);
     int score_two = 10 * score_player_two(*game);
 
-    int result = won(game);
+    int result = 1;
     if (result == 1) return (player == P1) ? 50000 : -50000;
     if (result == 2) return (player == P2) ? 50000 : -50000;
     if (result == 8) return 0; // draw
@@ -125,7 +125,7 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
 
             for (int d = 0; d < 4; d++) {
                 int k = 1;
-                while (true) {
+                while (1) {
                     int ni = i + k * dirs[d][0];
                     int nj = j + k * dirs[d][1];
 

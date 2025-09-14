@@ -42,7 +42,7 @@ typedef struct {
 } Game;
 
 // Game rules checkers
-int won(Game* game);
+static void won(Game* game);
 void did_eat(Game* game, int row, int col, Direction sprint_direction);
 int is_move_legal(Game* game, int src_row, int src_col, int dst_row, int dst_col);
 Player get_player(Piece piece);

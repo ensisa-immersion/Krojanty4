@@ -143,7 +143,6 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
         if ( ((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP ) ||
               (get_player(game->board[row - 2][col]) == player && row - 2 >= 0) )  {
             game->board[row - 1][col] = P_NONE;
-            game->last_visited[row - 1][col] = P_NONE;
         }
     }
 
@@ -151,7 +150,6 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
         if ( ((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT ) ||
               (get_player(game->board[row][col - 2]) == player && col - 2 >= 0) ) {
             game->board[row][col - 1] = P_NONE;
-            game->last_visited[row][col - 1] = P_NONE;
         }
     }
 
@@ -159,7 +157,6 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
         if ( ((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT ) ||
               (get_player(game->board[row][col + 2]) == player && col + 2 <= 8) ) {
             game->board[row][col + 1] = P_NONE;
-            game->last_visited[row][col + 1] = P_NONE;
         }
     }
 
@@ -167,7 +164,6 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
         if ( ((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN ) ||
               (get_player(game->board[row + 2][col]) == player && row + 2 <= 8) ) {
             game->board[row + 1][col] = P_NONE;
-            game->last_visited[row + 1][col] = P_NONE;
         }
     }
 }
@@ -184,8 +180,8 @@ static void won(Game* game) {
         int counter = 0;
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
-                if (game->last_visited[i][j] == P1_KING || game->last_visited[i][j] == P1_PAWN) counter++;
-                if (game->last_visited[i][j] == P2_KING || game->last_visited[i][j] == P2_PAWN) counter--;
+                counter += score_player_one(*game);
+                counter -= score_player_two(*game);
             }
         }
 

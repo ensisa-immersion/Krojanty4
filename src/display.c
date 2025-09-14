@@ -118,7 +118,7 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
         } else if (game->won==P2) {
             snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagne!");
         }
-        
+
         // Désactiver les interactions une fois la partie terminée
         /*
         - Have_source -> Pour désactiver la sélection de source
@@ -215,7 +215,6 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
             int tile = game->board[j][i];
-            int visited = game->last_visited[j][i];
 
             // Couleur de base de la cellule
             if (i + j == 0) {
@@ -227,11 +226,9 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
             }
 
             // Couleur de la cellule visitée
-            switch (visited) {
-                case P1_PAWN: cairo_set_source_rgb(cr, 0.85, 0.95, 1); break;
-                case P2_PAWN: cairo_set_source_rgb(cr, 1, 0.85, 0.85); break;
-                case P1_KING: cairo_set_source_rgb(cr, 0.85, 0.95, 1); break;
-                case P2_KING: cairo_set_source_rgb(cr, 1, 0.85, 0.85); break;
+            switch (tile) {
+                case P1_VISITED: cairo_set_source_rgb(cr, 0.85, 0.95, 1); break;
+                case P2_VISITED: cairo_set_source_rgb(cr, 1, 0.85, 0.85); break;
             }
 
             // Highlighting de la cellule sélectionnée
