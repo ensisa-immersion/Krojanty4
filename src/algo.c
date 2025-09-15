@@ -14,7 +14,7 @@ void update_board_ai(Game * game, int dst_row, int dst_col) {
     game->board[src_row][src_col] = (get_player(game->board[src_row][src_col]) == P1) ? P1_VISITED : P2_VISITED;
 
     // Check if someone was eaten
-    Direction direction;
+    Direction direction = NONE;
     if (dst_row != src_row) {
         direction = (dst_row < src_row) ? DIR_TOP : DIR_DOWN;
     } else if (dst_col != src_col) {
@@ -22,15 +22,10 @@ void update_board_ai(Game * game, int dst_row, int dst_col) {
     }
     did_eat(game, dst_row, dst_col, direction);
 
-    // Handle wins
-    int has_won = 1;
-    if (has_won) {
-        game->won = has_won;
-        return;
-    } else {
-        // Advance turn
-        game->turn++;
-    }
+    won(game);
+
+    game->turn++;
+
 }
 
 

@@ -312,8 +312,11 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
     Game *game = (Game*) user_data;
 
     GtkWidget *widget = gtk_event_controller_get_widget(GTK_EVENT_CONTROLLER(gesture));
-    int width = gtk_widget_get_allocated_width(widget);
-    int height = gtk_widget_get_allocated_height(widget);
+    // int width = gtk_widget_get_allocated_width(widget); 
+    // int height = gtk_widget_get_allocated_height(widget); 
+    // --- deprecated --- 
+    int width = gtk_widget_get_width(widget);
+    int height = gtk_widget_get_height(widget);
 
     int grid_width = GRID_SIZE * CELL_SIZE;
     int grid_height = GRID_SIZE * CELL_SIZE;

@@ -169,12 +169,13 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 }
 
 /* Vérifie qui a gagné la partie */
-static void won(Game* game) {
+void won(Game* game) {
     if (game->board[8][8] == P1_KING) {
         game->won = P1;
     } else if (game->board[0][0] == P2_KING) {
         game->won = P2;
     }
+
     // Vérifie le nombre de pièces restantes pour chaque camp
     int p1_pieces = 0;
     int p2_pieces = 0;
@@ -192,17 +193,15 @@ static void won(Game* game) {
     }
 
     // Si le joueur 1 n’a plus que 2 pièces (roi + 1 soldat), joueur 2 gagne
+    // Sinon le joueur 2 n’a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
     if (p1_pieces <= 2) {
         game->won = P2;
-    }
-    // Si le joueur 2 n’a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
-    else if (p2_pieces <= 2) {
+    } else if (p2_pieces <= 2) {
         game->won = P1;
     }
 
-
-    if (game->turn >= 63) { // && game->won == NOT_PLAYER
-        int counter = 0;
+    if (game->turn >= 63 && game->won == NOT_PLAYER) {
+        int counter = score_player_one(*game) - score_player_two(*game);
         for (int i = 0; i < 9; i++) { // On parcourt tout le plateau pour compter les scores
             for (int j = 0; j < 9; j++) {
                 counter += score_player_one(*game);
@@ -211,13 +210,13 @@ static void won(Game* game) {
         }
 
         if (counter != 0) {
-
-            game->won = (game->turn % 2 == 0) ? P1 : P2; // Score
+            game->won = (counter > 0) ? P1 : P2;
         } else {
             game->won = DRAW;
         }
     }
-// Vérifie si les rois sont encore vivants
+
+    // Vérifie si les rois sont encore vivants
     int is_blue_king_alive = 0;
     int is_red_king_alive = 0;
     for (int i = 0; i < 9; i++) {
@@ -261,7 +260,7 @@ void update_board(Game *game, int dst_row, int dst_col) {
         game->board[src_row][src_col] = (get_player(game->board[src_row][src_col]) == P1) ? P1_VISITED : P2_VISITED;
 
         // Check if someone was eaten
-        Direction direction;
+        Direction direction = NONE;
         if (dst_row != src_row) {
             if (dst_row > src_row) {
                 direction = DIR_DOWN;
@@ -276,14 +275,6 @@ void update_board(Game *game, int dst_row, int dst_col) {
             }
         }
         did_eat(game, dst_row, dst_col, direction);
-
-        // Handle wins
-        /* int has_won = won(game);
-        if (has_won == 8) {
-            game->won = 2;
-        } else if (has_won == 1) {
-            game->won = 1;
-        } */
 
         won(game);
 

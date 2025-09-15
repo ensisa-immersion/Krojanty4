@@ -11,6 +11,7 @@ typedef enum {
     NOT_PLAYER = 0,
     P1,
     P2,
+    AI, // AI player or a better check !, use rules (client is blue)
     DRAW // Or we can make a Winner enum ?
 } Player;
 
@@ -28,7 +29,8 @@ typedef enum {
     DIR_TOP,
     DIR_DOWN,
     DIR_LEFT,
-    DIR_RIGHT
+    DIR_RIGHT,
+    NONE
 } Direction;
 
 typedef struct {
@@ -42,7 +44,7 @@ typedef struct {
 } Game;
 
 // Game rules checkers
-static void won(Game* game);
+void won(Game* game);
 void did_eat(Game* game, int row, int col, Direction sprint_direction);
 int is_move_legal(Game* game, int src_row, int src_col, int dst_row, int dst_col);
 Player get_player(Piece piece);
