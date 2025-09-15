@@ -23,11 +23,16 @@ void* run_server_thread(void* arg) {
 int main(int argc, char *argv[]) {
     int ai_enabled = 0;
     
-    // Check for -ai flag in arguments
+    // Check for -ai flag in arguments and filter it out
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-ia") == 0) {
+        if (strcmp(argv[i], "-ai") == 0) {
             ai_enabled = 1;
-            break;
+            // Shift remaining arguments left to remove -ai
+            for (int j = i; j < argc - 1; j++) {
+                argv[j] = argv[j + 1];
+            }
+            argc--; // Reduce argument count
+            i--; // Check the same position again in case of multiple -ai
         }
     }
 
@@ -57,6 +62,9 @@ int main(int argc, char *argv[]) {
         }
         pthread_detach(server_thread);
 
+        // Lance immédiatement l'UI GTK pour le serveur (joueur host)
+        char *gtk_argv[] = { argv[0], NULL };
+        return initialize_display(1, gtk_argv, &game);
     }
 
     if (strcmp(argv[1], "-c") == 0 && argc >= 3) {
@@ -79,6 +87,10 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         start_client_rx(&game);
+
+        // Lancement de GTK côté client
+        char *gtk_argv[] = { argv[0], NULL };
+        return initialize_display(1, gtk_argv, &game);
     }
 
     fprintf(stderr, "Usage: %s [-ai] -l | [-ai] -s <port> | [-ai] -c <ip:port>\n", argv[0]);
