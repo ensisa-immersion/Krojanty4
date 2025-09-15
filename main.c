@@ -27,16 +27,16 @@ int main(int argc, char *argv[]) {
     Game game;
     int ai_enabled = 0;
     
-    // Check for -ai flag in arguments and filter it out
+    // Check for -ia flag in arguments and filter it out
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-ai") == 0) {
+        if (strcmp(argv[i], "-ia") == 0) {
             ai_enabled = 1;
-            // Shift remaining arguments left to remove -ai
+            // Shift remaining arguments left to remove -ia
             for (int j = i; j < argc - 1; j++) {
                 argv[j] = argv[j + 1];
             }
             argc--; // Reduce argument count
-            i--; // Check the same position again in case of multiple -ai
+            i--; // Check the same position again in case of multiple -ia
         }
     }
 
@@ -100,6 +100,6 @@ int main(int argc, char *argv[]) {
         return initialize_display(0, NULL, &game);
     }
 
-    fprintf(stderr, "Usage: %s [-ai] -l | [-ai] -s <port> | [-ai] -c <ip:port>\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-ia] -l | [-ia] -s <port> | [-ia] -c <ip:port>\n", argv[0]);
     return 1;
 }
