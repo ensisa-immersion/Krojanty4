@@ -48,6 +48,7 @@ static gboolean check_ai_periodic(gpointer user_data) {
             if (game->turn != last_ai_turn) {
                 last_ai_turn = game->turn;
                 printf("[AI] Timer: C'est le tour de l'IA (tour %d)\n", game->turn);
+                // Pas de délai supplémentaire ici, check_ai_turn se charge du timing
                 check_ai_turn(game);
             }
         }
@@ -199,12 +200,15 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
             snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
         } else {
             /* Mode réseau : indiquer qui doit jouer */
-            int is_server_turn = (game->turn % 2 == 1);
+            int is_server_turn = (game->turn % 2 == 1);  // Tours impairs = serveur
             const char* current_player = is_server_turn ? "Serveur (Rouge)" : "Client (Bleu)";
             const char* your_turn = "";
 
-            if ((game->game_mode == SERVER && is_server_turn) ||
-                (game->game_mode == CLIENT && !is_server_turn)) {
+            // Correction de la logique: 
+            // - Client joue aux tours pairs (0, 2, 4...) = P1 = Bleu
+            // - Serveur joue aux tours impairs (1, 3, 5...) = P2 = Rouge
+            if ((game->game_mode == CLIENT && !is_server_turn) ||
+                (game->game_mode == SERVER && is_server_turn)) {
                 your_turn = " - VOTRE TOUR";
             } else {
                 your_turn = " - Tour adversaire";

@@ -10,6 +10,48 @@
 #include "move_util.h"
 #include "algo.h"
 
+// Structure pour gérer l'IA de façon asynchrone
+typedef struct {
+    Game *game;
+} AITask;
+
+/**
+ * Callback pour exécuter l'IA de façon asynchrone
+ */
+gboolean ai_delayed_callback(gpointer data) {
+    AITask *task = (AITask*)data;
+    Game *game = task->game;
+    
+    if (game->won != NOT_PLAYER) {
+        g_free(task);
+        return G_SOURCE_REMOVE;
+    }
+    
+    int is_ai_turn = 0;
+    
+    // Déterminer si c'est encore le tour de l'IA
+    if (game->game_mode == LOCAL && (game->turn % 2 == 1)) {
+        is_ai_turn = 1;
+    } else if (game->game_mode == SERVER && (game->turn % 2 == 1)) {
+        is_ai_turn = 1;
+    } else if (game->game_mode == CLIENT && (game->turn % 2 == 0)) {
+        is_ai_turn = 1;
+    }
+    
+    if (is_ai_turn) {
+        if (game->game_mode == LOCAL) {
+            ai_next_move(game);
+            display_request_redraw();
+        } else {
+            ai_network_move(game);
+        }
+    }
+    
+    g_free(task);
+    return G_SOURCE_REMOVE;
+}
+#include "algo.h"
+
 /* Déclaré dans client.c */
 extern int g_client_socket;
 void send_message(int client_socket, const char *move4);
@@ -52,13 +94,7 @@ void ai_network_move(Game *game) {
     printf("[AI] IA %s joue: %s (de %c%c à %c%c)\n", 
            mode_name, move, move[0], move[1], move[2], move[3]);
     
-    // Appliquer le mouvement localement
-    game->selected_tile[0] = best_move.src_row;
-    game->selected_tile[1] = best_move.src_col;
-    update_board(game, best_move.dst_row, best_move.dst_col);
-    display_request_redraw();
-    
-    // Envoyer le mouvement selon le mode
+    // Envoyer le mouvement selon le mode AVANT de l'appliquer localement
     if (game->game_mode == SERVER && g_server_client_socket >= 0) {
         printf("[AI] Envoi du mouvement au client...\n");
         send_message_to_client(g_server_client_socket, move);
@@ -66,6 +102,14 @@ void ai_network_move(Game *game) {
         printf("[AI] Envoi du mouvement au serveur...\n");
         send_message(g_client_socket, move);
     }
+    
+    // Appliquer le mouvement localement APRÈS l'envoi réseau
+    game->selected_tile[0] = best_move.src_row;
+    game->selected_tile[1] = best_move.src_col;
+    update_board(game, best_move.dst_row, best_move.dst_col);
+    
+    // Redessiner APRÈS l'application locale
+    display_request_redraw();
 }
 
 /**
@@ -77,17 +121,29 @@ void check_ai_initial_move(Game *game) {
     if (!game->is_ai || game->won != NOT_PLAYER) return;
     
     // L'IA commence si:
-    // - En mode client et c'est le tour 0 (client = P1 = tours pairs)
+    // - En mode client et c'est le tour 0 (client = P1 = tours pairs = bleu)
+    // - En mode serveur et c'est le tour 1 (serveur = P2 = tours impairs = rouge)
     // - En mode local et c'est le tour 0 (joueur 1 commence)
-    if (game->turn == 0 && (game->game_mode == CLIENT || game->game_mode == LOCAL)) {
-        const char* mode_str = (game->game_mode == CLIENT) ? "client" : "local";
-        printf("[AI] IA commence la partie (%s)\n", mode_str);
-        usleep(1000000); // 1 seconde de délai pour laisser l'interface se charger
+    
+    int should_start = 0;
+    
+    if (game->turn == 0 && game->game_mode == CLIENT) {
+        // Client = P1 = Bleu = commence en premier (tour 0)
+        should_start = 1;
+        printf("[AI] IA client (P1/Bleu) commence la partie\n");
+    } else if (game->turn == 0 && game->game_mode == LOCAL) {
+        // En mode local, vérifier si l'IA doit jouer au premier tour
+        should_start = 0; // L'IA est joueur 2 en local, ne commence pas
+        printf("[AI] Mode local: humain commence, IA attendra son tour\n");
+    }
+    
+    if (should_start) {
+        // Délai réduit pour une meilleure réactivité
+        usleep(500000); // 0.5 seconde au lieu de 1 seconde
         
         if (game->game_mode == CLIENT) {
             ai_network_move(game);
         } else if (game->game_mode == LOCAL) {
-            // En mode local, vérifier si l'IA doit jouer au premier tour
             check_ai_turn(game);
         }
     }
@@ -121,15 +177,13 @@ void check_ai_turn(Game *game) {
                game->game_mode == LOCAL ? "LOCAL" : 
                game->game_mode == SERVER ? "SERVER" : "CLIENT");
         
-        if (game->game_mode == LOCAL) {
-            ai_next_move(game);
-            display_request_redraw();
-        } else {
-            // Délai plus long pour le mode réseau (2 secondes)
-            printf("[AI] IA réfléchit...\n");
-            usleep(2000000); // 2 secondes de délai
-            ai_network_move(game);
-        }
+        // Programmer l'IA pour qu'elle joue après un court délai
+        // permettant à l'interface de se redessiner
+        AITask *task = g_new0(AITask, 1);
+        task->game = game;
+        
+        // Délai minimal pour permettre le redraw de l'interface
+        g_timeout_add(50, ai_delayed_callback, task); // 50ms
     }
 }
 
