@@ -21,11 +21,13 @@ void* run_server_thread(void* arg) {
 }
 
 int main(int argc, char *argv[]) {
+
+    Game game;
     int ai_enabled = 0;
     
     // Check for -ai flag in arguments and filter it out
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-ai") == 0) {
+        if (strcmp(argv[i], "-ia") == 0) {
             ai_enabled = 1;
             // Shift remaining arguments left to remove -ai
             for (int j = i; j < argc - 1; j++) {
@@ -39,8 +41,8 @@ int main(int argc, char *argv[]) {
     if (argc == 1 || (argc >= 2 && strcmp(argv[1], "-l") == 0)) {
         // Mode LOCAL (2 joueurs sur la même machine)
         printf("Démarrage en mode local%s...\n", ai_enabled ? " avec IA" : "");
-        Game game = init_game(LOCAL, ai_enabled);
-        return initialize_display(0, NULL, &game);
+        game = init_game(LOCAL, ai_enabled);
+        // return initialize_display(0, NULL, &game);
     }
 
     if (strcmp(argv[1], "-s") == 0 && argc >= 3) {
@@ -62,9 +64,9 @@ int main(int argc, char *argv[]) {
         }
         pthread_detach(server_thread);
 
-        // Lance immédiatement l'UI GTK pour le serveur (joueur host)
+        /* // Lance immédiatement l'UI GTK pour le serveur (joueur host)
         char *gtk_argv[] = { argv[0], NULL };
-        return initialize_display(1, gtk_argv, &game);
+        return initialize_display(1, gtk_argv, &game); */
     }
 
     if (strcmp(argv[1], "-c") == 0 && argc >= 3) {
@@ -88,10 +90,12 @@ int main(int argc, char *argv[]) {
         }
         start_client_rx(&game);
 
-        // Lancement de GTK côté client
+        /* // Lancement de GTK côté client
         char *gtk_argv[] = { argv[0], NULL };
-        return initialize_display(1, gtk_argv, &game);
+        return initialize_display(1, gtk_argv, &game); */
     }
+
+    return initialize_display(0, NULL, &game);
 
     fprintf(stderr, "Usage: %s [-ai] -l | [-ai] -s <port> | [-ai] -c <ip:port>\n", argv[0]);
     return 1;
