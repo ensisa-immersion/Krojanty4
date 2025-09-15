@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "game.h"
 #include "algo.h"
-
-#define DEPTH 3
+#include "const.h"
 
 /**
  * Fonction de mise à jour du plateau pour l'IA

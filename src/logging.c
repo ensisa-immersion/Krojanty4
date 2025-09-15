@@ -1,4 +1,3 @@
-#include "../include/logging.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,9 +6,8 @@
 #include <errno.h>
 #include <stdarg.h>
 
-#define MAX_FILENAME_LEN 256
-#define MAX_LOG_MESSAGE_LEN 1024
-#define MAX_LOG_FILES 1000
+#include "logging.h"
+#include "const.h"
 
 typedef struct {
     char filename[MAX_FILENAME_LEN];

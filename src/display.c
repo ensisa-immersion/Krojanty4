@@ -13,7 +13,6 @@ static gboolean have_source = FALSE;
 static int src_r = -1, src_c = -1;
 
 /* Variables pour stocker les mouvements possibles */
-#define MAX_POSSIBLE_MOVES 64
 static int possible_moves[MAX_POSSIBLE_MOVES][2];
 static int num_possible_moves = 0;
 

@@ -1,4 +1,5 @@
 #include <math.h>
+
 #include "game.h"
 #include "display.h"
 #include "algo.h"

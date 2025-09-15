@@ -2,9 +2,9 @@
 #define DISPLAY_H_INCLUDED
 
 #include <gtk/gtk.h>
-#include "game.h"
 
-#define CELL_SIZE 40
+#include "game.h"
+#include "const.h"
 
 void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data);
 void activate (GtkApplication *app, gpointer user_data);
