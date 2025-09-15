@@ -75,7 +75,7 @@ void check_ai_initial_move(Game *game) {
     if ((game->game_mode == SERVER || game->game_mode == CLIENT) && game->turn == 0) {
         const char* mode_str = (game->game_mode == SERVER) ? "serveur" : "client";
         printf("[AI] IA commence la partie (%s)\n", mode_str);
-        usleep(1000000); // 1 seconde de délai pour laisser l'interface se charger
+        sleep(1000000); // 1 seconde de délai pour laisser l'interface se charger
         
         if (game->game_mode == SERVER || game->game_mode == CLIENT) {
             ai_network_move(game);
@@ -111,7 +111,7 @@ void check_ai_turn(Game *game) {
             ai_next_move(game);
             display_request_redraw();
         } else {
-            usleep(500000); // 500ms de délai
+            sleep(500000); // 500ms de délai
             ai_network_move(game);
         }
     }
