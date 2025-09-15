@@ -1,6 +1,7 @@
 #include <math.h>
 #include "game.h"
 #include "display.h"
+#include "algo.h"
 
 
 /**
@@ -325,6 +326,7 @@ void update_board(Game *game, int dst_row, int dst_col) {
         game->selected_tile[1] = -1;
 
         int next_move_status __attribute__((unused)) = update_board_lan(game);
+        
     }
 }
 

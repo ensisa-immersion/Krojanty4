@@ -27,10 +27,7 @@ typedef struct {
 
     // eaten pawns
     int eaten_count;
-    struct {
-        int row, col;
-        int piece;
-    } eaten[4];
+    EatenPiece eaten[4];
 } UndoInfo;
 
 // Checks if AI ate a pawn and updates UndoInfo
@@ -50,7 +47,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP) ||
             (get_player(game->board[row - 2][col]) == player && row - 2 >= 0)) {
 
-            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row - 1, col, game->board[row - 1][col] };
+            undo->eaten[undo->eaten_count++] = (EatenPiece){ row - 1, col, game->board[row - 1][col] };
             game->board[row - 1][col] = P_NONE;
         }
     }
@@ -59,7 +56,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT) ||
             (get_player(game->board[row][col - 2]) == player && col - 2 >= 0)) {
 
-            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row, col - 1, game->board[row][col - 1] };
+            undo->eaten[undo->eaten_count++] = (EatenPiece){ row, col - 1, game->board[row][col - 1] };
             game->board[row][col - 1] = P_NONE;
         }
     }
@@ -68,7 +65,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT) ||
             (get_player(game->board[row][col + 2]) == player && col + 2 <= 8)) {
 
-            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row, col + 1, game->board[row][col + 1] };
+            undo->eaten[undo->eaten_count++] = (EatenPiece){ row, col + 1, game->board[row][col + 1] };
             game->board[row][col + 1] = P_NONE;
         }
     }
@@ -77,7 +74,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN) ||
             (get_player(game->board[row + 2][col]) == player && row + 2 <= 8)) {
 
-            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row + 1, col, game->board[row + 1][col] };
+            undo->eaten[undo->eaten_count++] = (EatenPiece){ row + 1, col, game->board[row + 1][col] };
             game->board[row + 1][col] = P_NONE;
         }
     }
@@ -112,13 +109,9 @@ UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
     }
     did_eat_ai(game, dst_row, dst_col, direction, &undo);
 
-    // win / turn
-    int has_won = won(game);
-    if (has_won) {
-        game->won = has_won;
-    } else {
-        game->turn++;
-    }
+    won(game);
+
+    game->turn++;
 
     return undo;
 }
@@ -357,7 +350,6 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
     }
 }
 
-
 /**
  * Fonction principale pour obtenir le meilleur mouvement en utilisant minimax avec élagage alpha-bêta
  *
@@ -420,4 +412,5 @@ void ai_next_move(Game* game) {
     game->selected_tile[0] = best_move.src_row;
     game->selected_tile[1] = best_move.src_col;
     update_board(game, best_move.dst_row, best_move.dst_col);
+
 }

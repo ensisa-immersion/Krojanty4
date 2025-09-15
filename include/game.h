@@ -11,7 +11,7 @@ typedef enum {
     NOT_PLAYER = 0,
     P1,
     P2,
-    AI, // AI player or a better check !, use rules (client is blue)
+    // AI, // AI player or a better check !, use rules (client is blue)
     DRAW // Or we can make a Winner enum ?
 } Player;
 

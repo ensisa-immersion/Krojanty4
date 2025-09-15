@@ -12,6 +12,11 @@ typedef struct {
 } Move;
 
 typedef struct {
+    int row, col;
+    int piece;
+} EatenPiece;
+
+typedef struct {
     Move s_move;
     int score;
 } ScoredMove;
