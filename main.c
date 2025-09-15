@@ -97,6 +97,6 @@ int main(int argc, char *argv[]) {
 
     return initialize_display(0, NULL, &game);
 
-    fprintf(stderr, "Usage: %s [-ai] -l | [-ai] -s <port> | [-ai] -c <ip:port>\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-ia] -l | [-ia] -s <port> | [-ia] -c <ip:port>\n", argv[0]);
     return 1;
 }
