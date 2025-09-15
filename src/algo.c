@@ -8,32 +8,134 @@
 /**
  * Fonction de mise à jour du plateau pour l'IA
  * Elle est similaire à update_board mais sans SDL_Delay.
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param dst_row Ligne de destination
  * @param dst_col Colonne de destination
  * @return void
  */
-void update_board_ai(Game * game, int dst_row, int dst_col) {
+// Required info to undo a move
+typedef struct {
+    int src_row, src_col;
+    int dst_row, dst_col;
+
+    int src_piece;
+    int dst_piece;
+
+    int turn_before;
+    int won_before;
+
+    // eaten pawns
+    int eaten_count;
+    struct {
+        int row, col;
+        int piece;
+    } eaten[4];
+} UndoInfo;
+
+// Checks if AI ate a pawn and updates UndoInfo
+void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoInfo *undo) {
+    undo->eaten_count = 0; // reset
+
+    Player player = ((game->turn & 1) == 0) ? P1 : P2;
+    Player opponent = (player == P1) ? P2 : P1;
+
+    Player top = (row - 1 >= 0)? get_player(game->board[row - 1][col]) : NOT_PLAYER;
+    Player left = (col - 1 >= 0)? get_player(game->board[row][col - 1]) : NOT_PLAYER;
+    Player right = (col + 1 <= 8)? get_player(game->board[row][col + 1]) : NOT_PLAYER;
+    Player down = (row + 1 <= 8)? get_player(game->board[row + 1][col]) : NOT_PLAYER;
+
+    // --- same logic, but record before removal ---
+    if (top == opponent) {
+        if (((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP) ||
+            (get_player(game->board[row - 2][col]) == player && row - 2 >= 0)) {
+
+            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row - 1, col, game->board[row - 1][col] };
+            game->board[row - 1][col] = P_NONE;
+        }
+    }
+
+    if (left == opponent) {
+        if (((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT) ||
+            (get_player(game->board[row][col - 2]) == player && col - 2 >= 0)) {
+
+            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row, col - 1, game->board[row][col - 1] };
+            game->board[row][col - 1] = P_NONE;
+        }
+    }
+
+    if (right == opponent) {
+        if (((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT) ||
+            (get_player(game->board[row][col + 2]) == player && col + 2 <= 8)) {
+
+            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row, col + 1, game->board[row][col + 1] };
+            game->board[row][col + 1] = P_NONE;
+        }
+    }
+
+    if (down == opponent) {
+        if (((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN) ||
+            (get_player(game->board[row + 2][col]) == player && row + 2 <= 8)) {
+
+            undo->eaten[undo->eaten_count++] = (typeof(undo->eaten[0])){ row + 1, col, game->board[row + 1][col] };
+            game->board[row + 1][col] = P_NONE;
+        }
+    }
+}
+
+// Update sboard and stores necessary info to undo it
+UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
+    UndoInfo undo;
     int src_row = game->selected_tile[0];
     int src_col = game->selected_tile[1];
 
-    game->board[dst_row][dst_col] = game->board[src_row][src_col];
-    game->board[src_row][src_col] = (get_player(game->board[src_row][src_col]) == P1) ? P1_VISITED : P2_VISITED;
+    undo.src_row = src_row;
+    undo.src_col = src_col;
+    undo.dst_row = dst_row;
+    undo.dst_col = dst_col;
+    undo.src_piece = game->board[src_row][src_col];
+    undo.dst_piece = game->board[dst_row][dst_col];
+    undo.turn_before = game->turn;
+    undo.won_before = game->won;
+    undo.eaten_count = 0;
 
-    // Check if someone was eaten
-    Direction direction = NONE;
+    // apply move
+    game->board[dst_row][dst_col] = undo.src_piece;
+    game->board[src_row][src_col] = (get_player(undo.src_piece) == P1) ? P1_VISITED : P2_VISITED;
+
+    // check captures
+    Direction direction;
     if (dst_row != src_row) {
         direction = (dst_row < src_row) ? DIR_TOP : DIR_DOWN;
-    } else if (dst_col != src_col) {
+    } else {
         direction = (src_col > dst_col) ? DIR_LEFT : DIR_RIGHT;
     }
-    did_eat(game, dst_row, dst_col, direction);
+    did_eat_ai(game, dst_row, dst_col, direction, &undo);
 
-    won(game);
+    // win / turn
+    int has_won = won(game);
+    if (has_won) {
+        game->won = has_won;
+    } else {
+        game->turn++;
+    }
 
-    game->turn++;
+    return undo;
+}
 
+void undo_board_ai(Game *game, UndoInfo undo) {
+    // restore board
+    game->board[undo.src_row][undo.src_col] = undo.src_piece;
+    game->board[undo.dst_row][undo.dst_col] = undo.dst_piece;
+
+    // restore eaten pawns
+    for (int i = 0; i < undo.eaten_count; i++) {
+        game->board[undo.eaten[i].row][undo.eaten[i].col] = undo.eaten[i].piece;
+    }
+
+    // restore state
+    game->turn = undo.turn_before;
+    game->won = undo.won_before;
 }
 
 
@@ -41,7 +143,7 @@ void update_board_ai(Game * game, int dst_row, int dst_col) {
 /**
  * Fonction de mise à jour du plateau avec un mouvement donné.
  * Elle met à jour la position sélectionnée et appelle update_board_ai.
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param move Mouvement à appliquer
  * @return void
@@ -56,7 +158,7 @@ void update_with_move(Game * game, Move move) {
 /**
  * Fonction d'évaluation de l'état du jeu pour un joueur donné.
  * Elle combine le score des joueurs et la mobilité.
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param player Joueur pour lequel évaluer (P1 ou P2)
  * @return Score évalué
@@ -81,7 +183,7 @@ int utility(Game * game, Player player) {
 
 /**
  * Génère tous les mouvements possibles pour un joueur donné.
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param list Tableau pour stocker les mouvements possibles
  * @param player Joueur pour lequel générer les mouvements (P1 ou P2)
@@ -131,7 +233,7 @@ int all_possible_moves(Game * game, Move * list, Player player) {
 /**
  * Fonction de comparaison pour qsort
  * Trie les mouvements par score décroissant (merci les heures sur leetcode)
- * 
+ *
  * @param a Pointeur vers le premier mouvement
  * @param b Pointeur vers le second mouvement
  * @return Entier indiquant l'ordre des mouvements
@@ -145,7 +247,7 @@ int compare_moves_desc(const void *a, const void *b) {
 
 /**
  * Génère tous les mouvements possibles pour un joueur donné, les évalue et les trie par score décroissant.
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param move_list Tableau pour stock
  */
@@ -204,14 +306,14 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
 
 /**
  * Minimax avec élagage alpha-bêta
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param depth Profondeur actuelle de l'arbre
  * @param maximizing Booléen indiquant si on maximise ou minimise
  * @param alpha Valeur alpha pour l'élagage
  * @param beta Valeur beta pour l'élagage
  * @param initial_player Joueur initial pour l'évaluation
- * 
+ *
  * @return Score évalué
  */
 int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int beta, Player initial_player) {
@@ -258,7 +360,7 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
 
 /**
  * Fonction principale pour obtenir le meilleur mouvement en utilisant minimax avec élagage alpha-bêta
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @param depth Profondeur maximale pour la recherche
  * @return Meilleur mouvement trouvé
@@ -289,7 +391,7 @@ Move minimax_best_move(Game * game, int depth) {
 
 /**
  * Premier mouvement fixe pour l'IA
- * 
+ *
  * @param game Pointeur vers la structure de jeu
  * @return void
  */
