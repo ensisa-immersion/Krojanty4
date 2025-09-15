@@ -18,6 +18,46 @@ static int possible_moves[MAX_POSSIBLE_MOVES][2];
 static int num_possible_moves = 0;
 
 /**
+ * Callback pour déclencher l'IA après initialisation complète
+ */
+static gboolean trigger_ai_initial_move(gpointer user_data) {
+    Game *game = (Game*)user_data;
+    check_ai_initial_move(game);
+    return G_SOURCE_REMOVE; // Remove this idle callback
+}
+
+/**
+ * Callback périodique pour vérifier si l'IA doit jouer
+ */
+static gboolean check_ai_periodic(gpointer user_data) {
+    Game *game = (Game*)user_data;
+    
+    // Vérifier si l'IA doit jouer
+    if (game->is_ai && game->won == NOT_PLAYER) {
+        int should_ai_play = 0;
+        
+        if (game->game_mode == LOCAL && (game->turn % 2 == 1)) {
+            should_ai_play = 1;
+        } else if (game->game_mode == SERVER && (game->turn % 2 == 1)) {
+            should_ai_play = 1;
+        } else if (game->game_mode == CLIENT && (game->turn % 2 == 0)) {
+            should_ai_play = 1;
+        }
+        
+        if (should_ai_play) {
+            static int last_ai_turn = -1;
+            if (game->turn != last_ai_turn) {
+                last_ai_turn = game->turn;
+                printf("[AI] Timer: C'est le tour de l'IA (tour %d)\n", game->turn);
+                check_ai_turn(game);
+            }
+        }
+    }
+    
+    return G_SOURCE_CONTINUE; // Continue the timer
+}
+
+/**
  * Constantes pour la taille de la grille et des cellules
  * Ces valeurs peuvent être ajustées pour changer la taille de la grille
  * dans la fenêtre.
@@ -445,6 +485,13 @@ static void on_app_activate(GtkApplication *app, gpointer user_data) {
 
     gtk_window_set_child(GTK_WINDOW(window), frame);
     gtk_window_present(GTK_WINDOW(window));
+    
+    /* Déclencher l'IA après initialisation si nécessaire */
+    if (game->is_ai) {
+        g_idle_add(trigger_ai_initial_move, game);
+        // Timer périodique pour vérifier si l'IA doit jouer (toutes les 500ms)
+        g_timeout_add(500, check_ai_periodic, game);
+    }
 }
 
 int initialize_display(int argc, char** argv, Game* game) {

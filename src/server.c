@@ -10,6 +10,8 @@
 #include "display.h"
 #include "netutil.h"
 #include "move_util.h"
+#include "input.h"
+
 
 /* Socket du client connecté (pour que le serveur puisse lui envoyer ses coups) */
 int g_server_client_socket = -1;

@@ -1,6 +1,8 @@
 #include <math.h>
 #include "game.h"
 #include "display.h"
+#include "algo.h"
+#include "input.h"
 #include "const.h"
 #include "algo.h"
 
@@ -316,5 +318,7 @@ void update_board(Game *game, int dst_row, int dst_col) {
 
         int next_move_status __attribute__((unused)) = update_board_lan(game);
         
+        // Vérifier si l'IA doit jouer après ce changement d'état
+        check_ai_turn(game);
     }
 }

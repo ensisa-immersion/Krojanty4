@@ -47,7 +47,10 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP) ||
             (get_player(game->board[row - 2][col]) == player && row - 2 >= 0)) {
 
-            undo->eaten[undo->eaten_count++] = (EatenPiece){ row - 1, col, game->board[row - 1][col] };
+            undo->eaten[undo->eaten_count].row = row - 1;
+            undo->eaten[undo->eaten_count].col = col;
+            undo->eaten[undo->eaten_count].piece = game->board[row - 1][col];
+            undo->eaten_count++;
             game->board[row - 1][col] = P_NONE;
         }
     }
@@ -56,7 +59,10 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT) ||
             (get_player(game->board[row][col - 2]) == player && col - 2 >= 0)) {
 
-            undo->eaten[undo->eaten_count++] = (EatenPiece){ row, col - 1, game->board[row][col - 1] };
+            undo->eaten[undo->eaten_count].row = row;
+            undo->eaten[undo->eaten_count].col = col - 1;
+            undo->eaten[undo->eaten_count].piece = game->board[row][col - 1];
+            undo->eaten_count++;
             game->board[row][col - 1] = P_NONE;
         }
     }
@@ -65,7 +71,10 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT) ||
             (get_player(game->board[row][col + 2]) == player && col + 2 <= 8)) {
 
-            undo->eaten[undo->eaten_count++] = (EatenPiece){ row, col + 1, game->board[row][col + 1] };
+            undo->eaten[undo->eaten_count].row = row;
+            undo->eaten[undo->eaten_count].col = col + 1;
+            undo->eaten[undo->eaten_count].piece = game->board[row][col + 1];
+            undo->eaten_count++;
             game->board[row][col + 1] = P_NONE;
         }
     }
@@ -74,7 +83,10 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         if (((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN) ||
             (get_player(game->board[row + 2][col]) == player && row + 2 <= 8)) {
 
-            undo->eaten[undo->eaten_count++] = (EatenPiece){ row + 1, col, game->board[row + 1][col] };
+            undo->eaten[undo->eaten_count].row = row + 1;
+            undo->eaten[undo->eaten_count].col = col;
+            undo->eaten[undo->eaten_count].piece = game->board[row + 1][col];
+            undo->eaten_count++;
             game->board[row + 1][col] = P_NONE;
         }
     }
@@ -109,7 +121,13 @@ UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
     }
     did_eat_ai(game, dst_row, dst_col, direction, &undo);
 
+    // win / turn
     won(game);
+    if (game->won != NOT_PLAYER) {
+        // Game ended
+    } else {
+        game->turn++;
+    }
 
     game->turn++;
 
@@ -135,7 +153,7 @@ void undo_board_ai(Game *game, UndoInfo undo) {
 
 /**
  * Fonction de mise à jour du plateau avec un mouvement donné.
- * Elle met à jour la position sélectionnée et appelle update_board_ai.
+ * Elle met à jour la position sélectionnée et applique le mouvement pour les simulations.
  *
  * @param game Pointeur vers la structure de jeu
  * @param move Mouvement à appliquer
@@ -144,7 +162,29 @@ void undo_board_ai(Game *game, UndoInfo undo) {
 void update_with_move(Game * game, Move move) {
     game->selected_tile[0] = move.src_row;
     game->selected_tile[1] = move.src_col;
-    update_board_ai(game, move.dst_row, move.dst_col);
+    
+    // Direct board update without using update_board_ai for simulations
+    Piece moving_piece = game->board[move.src_row][move.src_col];
+    game->board[move.dst_row][move.dst_col] = moving_piece;
+    game->board[move.src_row][move.src_col] = (get_player(moving_piece) == P1) ? P1_VISITED : P2_VISITED;
+
+    // Check captures
+    Direction direction = NONE;
+    if (move.dst_row != move.src_row) {
+        direction = (move.dst_row < move.src_row) ? DIR_TOP : DIR_DOWN;
+    } else if (move.dst_col != move.src_col) {
+        direction = (move.dst_col > move.src_col) ? DIR_RIGHT : DIR_LEFT;
+    }
+    
+    if (direction != NONE) {
+        did_eat(game, move.dst_row, move.dst_col, direction);
+    }
+
+    // Check win condition and advance turn
+    won(game);
+    if (game->won == NOT_PLAYER) {
+        game->turn++;
+    }
 }
 
 
@@ -160,14 +200,14 @@ int utility(Game * game, Player player) {
     int score_one = 10 * score_player_one(*game);
     int score_two = 10 * score_player_two(*game);
 
-    int result = 1;
-    if (result == 1) return (player == P1) ? 50000 : -50000;
-    if (result == 2) return (player == P2) ? 50000 : -50000;
-    if (result == 8) return 0; // draw
+    // Check win conditions
+    if (game->won == P1) return (player == P1) ? 50000 : -50000;
+    if (game->won == P2) return (player == P2) ? 50000 : -50000;
+    if (game->won == DRAW) return 0; // draw
 
     Move moves[10*16];
-    score_two -= all_possible_moves(game, moves, P2);  // AI mobility
-    score_two += all_possible_moves(game, moves, P1);
+    score_two += all_possible_moves(game, moves, P2);  // AI mobility
+    score_one += all_possible_moves(game, moves, P1);
 
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
