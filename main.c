@@ -21,28 +21,28 @@ void* run_server_thread(void* arg) {
 }
 
 int main(int argc, char *argv[]) {
-
-    Game game;
-    int is_ai = 0;
-
-    // Mode AI
-    for (int i = 0; i<argc;i++) {
-        if (strcmp(argv[i],"-ia") == 0) {
-            is_ai = 1;
+    int ai_enabled = 0;
+    
+    // Check for -ai flag in arguments
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-ia") == 0) {
+            ai_enabled = 1;
+            break;
         }
     }
 
     if (argc == 1 || (argc >= 2 && strcmp(argv[1], "-l") == 0)) {
         // Mode LOCAL (2 joueurs sur la même machine)
-        printf("Démarrage en mode local...\n");
-        game = init_game(LOCAL, is_ai);
+        printf("Démarrage en mode local%s...\n", ai_enabled ? " avec IA" : "");
+        Game game = init_game(LOCAL, ai_enabled);
+        return initialize_display(0, NULL, &game);
     }
 
     if (strcmp(argv[1], "-s") == 0 && argc >= 3) {
         // Mode SERVEUR (host + player)
         int port = atoi(argv[2]);
-        printf("Démarrage du serveur sur le port %d...\n", port);
-        game = init_game(SERVER, is_ai);
+        printf("Démarrage du serveur sur le port %d%s...\n", port, ai_enabled ? " avec IA" : "");
+        Game game = init_game(SERVER, ai_enabled);
 
         // Lance le serveur dans un thread séparé pour ne pas bloquer la GUI
         pthread_t server_thread;
@@ -71,8 +71,8 @@ int main(int argc, char *argv[]) {
         const char *addr = argv[2];
         int port = atoi(sep + 1);
 
-        printf("Connexion au serveur %s:%d...\n", addr, port);
-        game = init_game(CLIENT, is_ai);
+        printf("Connexion au serveur %s:%d%s...\n", addr, port, ai_enabled ? " avec IA" : "");
+        Game game = init_game(CLIENT, ai_enabled);
 
         if (connect_to_server(addr, port) < 0) {
             fprintf(stderr, "[CLIENT] Impossible de se connecter.\n");
@@ -81,8 +81,6 @@ int main(int argc, char *argv[]) {
         start_client_rx(&game);
     }
 
-    return initialize_display(0, NULL, &game);
-
-    fprintf(stderr, "Usage: %s -l | -s <port> | -c <ip:port>\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-ai] -l | [-ai] -s <port> | [-ai] -c <ip:port>\n", argv[0]);
     return 1;
 }
