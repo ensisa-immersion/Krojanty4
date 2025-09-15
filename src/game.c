@@ -204,46 +204,11 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
  * @return void
  */
 void won(Game* game) {
+
     if (game->board[8][8] == P1_KING && game->won == NOT_PLAYER) {
         game->won = P1;
     } else if (game->board[0][0] == P2_KING && game->won == NOT_PLAYER) {
         game->won = P2;
-    }
-
-    if (game->won == NOT_PLAYER) {
-        // Vérifie le nombre de pièces restantes pour chaque camp
-        int p1_pieces = 0;
-        int p2_pieces = 0;
-
-        for (int i = 0; i < 9; i++) {
-            for (int j = 0; j < 9; j++) {
-        
-                if (game->board[i][j] == P1_PAWN || game->board[i][j] == P1_KING) {
-                    p1_pieces++;
-                }
-                if (game->board[i][j] == P2_PAWN || game->board[i][j] == P2_KING) {
-                    p2_pieces++;
-                }
-            }
-        }
-
-        // Si le joueur 1 n’a plus que 2 pièces (roi + 1 soldat), joueur 2 gagne
-        // Sinon le joueur 2 n’a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
-        if (p1_pieces <= 2) {
-            game->won = P2;
-        } else if (p2_pieces <= 2) {
-            game->won = P1;
-        }
-    }
-
-    if (game->turn >= 63 && game->won == NOT_PLAYER) {
-        int counter = score_player_one(*game) - score_player_two(*game);
-
-        if (counter != 0) {
-            game->won = (counter > 0) ? P1 : P2;
-        } else {
-            game->won = DRAW;
-        }
     }
 
     // Vérifie si les rois sont encore vivants
@@ -256,13 +221,48 @@ void won(Game* game) {
         }
     }
 
-    if (!is_blue_king_alive || !is_red_king_alive && game->won == NOT_PLAYER) {
+    if ((!is_blue_king_alive || !is_red_king_alive) && game->won == NOT_PLAYER) {
         if (!is_blue_king_alive) {
             game->won=P2;
         } else if (!is_red_king_alive) {
             game->won=P1;
         } else {
             game->won=NOT_PLAYER;
+        }
+    }
+
+    if (game->won == NOT_PLAYER) {
+        // Vérifie le nombre de pièces restantes pour chaque camp
+        int p1_piece = 0;
+        int p2_piece = 0;
+
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+        
+                if (game->board[i][j] == P1_PAWN || game->board[i][j] == P1_KING) {
+                    p1_piece++;
+                }
+                if (game->board[i][j] == P2_PAWN || game->board[i][j] == P2_KING) {
+                    p2_piece++;
+                }
+            }
+        }
+
+        // Si le joueur 1 n’a plus que 2 pièces (roi + 1 soldat), joueur 2 gagne
+        // Sinon le joueur 2 n’a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
+        if (p1_piece < 3) {
+            game->won = P2;
+        } else if (p2_piece < 3) {
+            game->won = P1;
+        }
+    }
+
+    if (game->turn >= 63 && game->won == NOT_PLAYER) {
+        int counter = score_player_one(*game) - score_player_two(*game);
+        if (counter != 0) {
+            game->won = (counter > 0) ? P1 : P2;
+        } else {
+            game->won = DRAW;
         }
     }
 }

@@ -215,14 +215,14 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
 
 /**
  * Fonction de callback pour dessiner la grille et les pièces.
- * @param area Le DrawingArea GTK
+ * @param area Le DrawingArea GTK & if area useless G_GNUC_UNUSED or (void)area
  * @param cr Le contexte Cairo pour le dessin
  * @param width La largeur de la zone de dessin
  * @param height La hauteur de la zone de dessin
  * @param user_data Pointeur vers l'état du jeu (Game*)
  * @return void
  */
-void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data) {
+void draw_callback(GtkDrawingArea *area G_GNUC_UNUSED, cairo_t *cr, int width, int height, gpointer user_data) {
     Game* game = (Game*) user_data;
 
     // Background
