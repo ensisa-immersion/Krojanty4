@@ -1,7 +1,9 @@
 #include <gtk/gtk.h>
+
 #include "display.h"
 #include "game.h"
 #include "input.h"
+#include "const.h"
 
 /* Référence globale du DrawingArea (sert pour redraw thread-safe) */
 static GtkWidget *g_main_drawing_area = NULL;

@@ -1,6 +1,7 @@
 #include <math.h>
 #include "game.h"
 #include "display.h"
+#include "const.h"
 #include "algo.h"
 
 
@@ -15,26 +16,14 @@ Game init_game(GameMode mode, int artificial_intelligence) {
     (void)artificial_intelligence; // idem
 
     Game game;
-    // Read enum in game.h to understand what number is which piece
-    Piece starting_board[9][9] = {
-        {0, 0, 1, 1, 0, 0, 0, 0, 0},
-        {0, 3, 1, 1, 0, 0, 0, 0, 0},
-        {1, 1, 1, 0, 0, 0, 0, 0, 0},
-        {1, 1, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 2, 2},
-        {0, 0, 0, 0, 0, 0, 2, 2, 2},
-        {0, 0, 0, 0, 0, 2, 2, 4, 0},
-        {0, 0, 0, 0, 0, 2, 2, 0, 0},
-    };
 
     game.won = 0;
     game.turn = 0;
 
-    // initialise les états
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            game.board[i][j] = starting_board[i][j];
+    // initialise les états avec le plateau de départ défini dans const.h
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            game.board[i][j] = STARTING_BOARD[i][j];
         }
     }
 
@@ -57,8 +46,8 @@ Game init_game(GameMode mode, int artificial_intelligence) {
  */
 int score_player_one(Game game) {
     int player_one_score = 0;
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
             if (game.board[i][j] == P1_VISITED) player_one_score++;
             if (get_player(game.board[i][j]) == P1) player_one_score += 2;
         }
@@ -74,8 +63,8 @@ int score_player_one(Game game) {
  */
 int score_player_two(Game game) {
     int player_two_score = 0;
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
             if (game.board[i][j] == P2_VISITED) player_two_score++;
             if (get_player(game.board[i][j]) == P2) player_two_score += 2;
         }
@@ -164,8 +153,8 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
 
     Player top = (row - 1 >= 0)? get_player(game->board[row - 1][col]) : NOT_PLAYER;
     Player left = (col - 1 >= 0)? get_player(game->board[row][col - 1]) : NOT_PLAYER;
-    Player right = (col + 1 <= 8)? get_player(game->board[row][col + 1]) : NOT_PLAYER;
-    Player down = (row + 1 <= 8)? get_player(game->board[row + 1][col]) : NOT_PLAYER;
+    Player right = (col + 1 < GRID_SIZE)? get_player(game->board[row][col + 1]) : NOT_PLAYER;
+    Player down = (row + 1 < GRID_SIZE)? get_player(game->board[row + 1][col]) : NOT_PLAYER;
 
 
     // Eats if sprint towards opponent without one behind him defending or when sandwiched
@@ -184,15 +173,15 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
     }
 
     if (right == opponent) {
-        if ( ((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT ) ||
-              (get_player(game->board[row][col + 2]) == player && col + 2 <= 8) ) {
+        if ( ((col + 2 >= GRID_SIZE || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT ) ||
+              (get_player(game->board[row][col + 2]) == player && col + 2 < GRID_SIZE) ) {
             game->board[row][col + 1] = P_NONE;
         }
     }
 
     if (down == opponent) {
-        if ( ((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN ) ||
-              (get_player(game->board[row + 2][col]) == player && row + 2 <= 8) ) {
+        if ( ((row + 2 >= GRID_SIZE || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN ) ||
+              (get_player(game->board[row + 2][col]) == player && row + 2 < GRID_SIZE) ) {
             game->board[row + 1][col] = P_NONE;
         }
     }
@@ -206,7 +195,7 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
  */
 void won(Game* game) {
 
-    if (game->board[8][8] == P1_KING && game->won == NOT_PLAYER) {
+    if (game->board[GRID_SIZE-1][GRID_SIZE-1] == P1_KING && game->won == NOT_PLAYER) {
         game->won = P1;
     } else if (game->board[0][0] == P2_KING && game->won == NOT_PLAYER) {
         game->won = P2;
@@ -215,8 +204,8 @@ void won(Game* game) {
     // Vérifie si les rois sont encore vivants
     int is_blue_king_alive = 0;
     int is_red_king_alive = 0;
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
             if (game->board[i][j] == P1_KING) is_blue_king_alive++;
             if (game->board[i][j] == P2_KING) is_red_king_alive++;
         }
@@ -237,9 +226,9 @@ void won(Game* game) {
         int p1_piece = 0;
         int p2_piece = 0;
 
-        for (int i = 0; i < 9; i++) {
-            for (int j = 0; j < 9; j++) {
-        
+        for (int i = 0; i < GRID_SIZE; i++) {
+            for (int j = 0; j < GRID_SIZE; j++) {
+
                 if (game->board[i][j] == P1_PAWN || game->board[i][j] == P1_KING) {
                     p1_piece++;
                 }
@@ -249,8 +238,8 @@ void won(Game* game) {
             }
         }
 
-        // Si le joueur 1 n’a plus que 2 pièces (roi + 1 soldat), joueur 2 gagne
-        // Sinon le joueur 2 n’a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
+        // Si le joueur 1 n'a plus que 2 pièces (roi + 1 soldat), joueur 2 gagne
+        // Sinon le joueur 2 n'a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
         if (p1_piece < 3) {
             game->won = P2;
         } else if (p2_piece < 3) {
@@ -329,4 +318,3 @@ void update_board(Game *game, int dst_row, int dst_col) {
         
     }
 }
-

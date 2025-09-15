@@ -4,7 +4,6 @@
 #include <gtk/gtk.h>
 #include "game.h"
 
-#define GRID_SIZE 9
 #define CELL_SIZE 40
 
 void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data);
