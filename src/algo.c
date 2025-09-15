@@ -166,8 +166,15 @@ int utility(Game * game, Player player) {
     if (result == 8) return 0; // draw
 
     Move moves[10*16];
-    score_two += all_possible_moves(game, moves, P2);  // AI mobility
-    score_two -= all_possible_moves(game, moves, P1);
+    score_two -= all_possible_moves(game, moves, P2);  // AI mobility
+    score_two += all_possible_moves(game, moves, P1);
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (get_player(game->board[i][j]) == P2) score_two += 10;
+            if (get_player(game->board[i][j]) == P1) score_one += 10;
+        }
+    }
 
     int final_score = (player == P2) ? score_two - score_one : score_one - score_two;
     return final_score;
