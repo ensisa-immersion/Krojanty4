@@ -7,6 +7,8 @@
 #include "display.h"
 #include "client.h"
 #include "server.h"
+#include "algo.h"
+#include "input.h"
 
 typedef struct {
     Game *game;
@@ -27,7 +29,7 @@ int main(int argc, char *argv[]) {
     
     // Check for -ai flag in arguments and filter it out
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-ia") == 0) {
+        if (strcmp(argv[i], "-ai") == 0) {
             ai_enabled = 1;
             // Shift remaining arguments left to remove -ai
             for (int j = i; j < argc - 1; j++) {
@@ -42,14 +44,16 @@ int main(int argc, char *argv[]) {
         // Mode LOCAL (2 joueurs sur la même machine)
         printf("Démarrage en mode local%s...\n", ai_enabled ? " avec IA" : "");
         game = init_game(LOCAL, ai_enabled);
-        // return initialize_display(0, NULL, &game);
+        if (ai_enabled) {
+            check_ai_initial_move(&game);
+        }
+        return initialize_display(0, NULL, &game);
     }
-
-    if (strcmp(argv[1], "-s") == 0 && argc >= 3) {
+    else if (argc >= 2 && strcmp(argv[1], "-s") == 0 && argc >= 3) {
         // Mode SERVEUR (host + player)
         int port = atoi(argv[2]);
         printf("Démarrage du serveur sur le port %d%s...\n", port, ai_enabled ? " avec IA" : "");
-        Game game = init_game(SERVER, ai_enabled);
+        game = init_game(SERVER, ai_enabled);
 
         // Lance le serveur dans un thread séparé pour ne pas bloquer la GUI
         pthread_t server_thread;
@@ -64,12 +68,12 @@ int main(int argc, char *argv[]) {
         }
         pthread_detach(server_thread);
 
-        /* // Lance immédiatement l'UI GTK pour le serveur (joueur host)
-        char *gtk_argv[] = { argv[0], NULL };
-        return initialize_display(1, gtk_argv, &game); */
+        if (ai_enabled) {
+            check_ai_initial_move(&game);
+        }
+        return initialize_display(0, NULL, &game);
     }
-
-    if (strcmp(argv[1], "-c") == 0 && argc >= 3) {
+    else if (argc >= 2 && strcmp(argv[1], "-c") == 0 && argc >= 3) {
         // Mode CLIENT
         char *sep = strchr(argv[2], ':');
         if (!sep) {
@@ -82,7 +86,7 @@ int main(int argc, char *argv[]) {
         int port = atoi(sep + 1);
 
         printf("Connexion au serveur %s:%d%s...\n", addr, port, ai_enabled ? " avec IA" : "");
-        Game game = init_game(CLIENT, ai_enabled);
+        game = init_game(CLIENT, ai_enabled);
 
         if (connect_to_server(addr, port) < 0) {
             fprintf(stderr, "[CLIENT] Impossible de se connecter.\n");
@@ -90,13 +94,12 @@ int main(int argc, char *argv[]) {
         }
         start_client_rx(&game);
 
-        /* // Lancement de GTK côté client
-        char *gtk_argv[] = { argv[0], NULL };
-        return initialize_display(1, gtk_argv, &game); */
+        if (ai_enabled) {
+            check_ai_initial_move(&game);
+        }
+        return initialize_display(0, NULL, &game);
     }
 
-    return initialize_display(0, NULL, &game);
-
-    fprintf(stderr, "Usage: %s [-ia] -l | [-ia] -s <port> | [-ia] -c <ip:port>\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-ai] -l | [-ai] -s <port> | [-ai] -c <ip:port>\n", argv[0]);
     return 1;
 }

@@ -1,3 +1,4 @@
+#define _DEFAULT_SOURCE
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -25,7 +26,10 @@ void send_message_to_client(int server_socket, const char *move4);
 void ai_network_move(Game *game) {
     if (game->won != NOT_PLAYER) return;  // Jeu terminé
     
-    printf("[AI] IA calcule son prochain coup...\n");
+    const char* mode_name = (game->game_mode == SERVER) ? "SERVER" : "CLIENT";
+    const char* player_name = (game->game_mode == SERVER) ? "P2 (Rouge)" : "P1 (Bleu)";
+    
+    printf("[AI] IA %s (%s) calcule son prochain coup...\n", mode_name, player_name);
     
     // Calculer le meilleur coup pour l'IA
     Game copy = *game;
@@ -45,7 +49,8 @@ void ai_network_move(Game *game) {
     move[3] = (char)('9' - best_move.dst_row);
     move[4] = '\0';
     
-    printf("[AI] IA joue: %s\n", move);
+    printf("[AI] IA %s joue: %s (de %c%c à %c%c)\n", 
+           mode_name, move, move[0], move[1], move[2], move[3]);
     
     // Appliquer le mouvement localement
     game->selected_tile[0] = best_move.src_row;
@@ -55,8 +60,10 @@ void ai_network_move(Game *game) {
     
     // Envoyer le mouvement selon le mode
     if (game->game_mode == SERVER && g_server_client_socket >= 0) {
+        printf("[AI] Envoi du mouvement au client...\n");
         send_message_to_client(g_server_client_socket, move);
     } else if (game->game_mode == CLIENT && g_client_socket >= 0) {
+        printf("[AI] Envoi du mouvement au serveur...\n");
         send_message(g_client_socket, move);
     }
 }
@@ -70,15 +77,18 @@ void check_ai_initial_move(Game *game) {
     if (!game->is_ai || game->won != NOT_PLAYER) return;
     
     // L'IA commence si:
-    // - En mode serveur et c'est le tour 0 (serveur commence toujours) 
-    // - En mode client et c'est le tour 0 (client commence aussi)
-    if ((game->game_mode == SERVER || game->game_mode == CLIENT) && game->turn == 0) {
-        const char* mode_str = (game->game_mode == SERVER) ? "serveur" : "client";
+    // - En mode client et c'est le tour 0 (client = P1 = tours pairs)
+    // - En mode local et c'est le tour 0 (joueur 1 commence)
+    if (game->turn == 0 && (game->game_mode == CLIENT || game->game_mode == LOCAL)) {
+        const char* mode_str = (game->game_mode == CLIENT) ? "client" : "local";
         printf("[AI] IA commence la partie (%s)\n", mode_str);
-        sleep(1000000); // 1 seconde de délai pour laisser l'interface se charger
+        usleep(1000000); // 1 seconde de délai pour laisser l'interface se charger
         
-        if (game->game_mode == SERVER || game->game_mode == CLIENT) {
+        if (game->game_mode == CLIENT) {
             ai_network_move(game);
+        } else if (game->game_mode == LOCAL) {
+            // En mode local, vérifier si l'IA doit jouer au premier tour
+            check_ai_turn(game);
         }
     }
 }
@@ -98,20 +108,26 @@ void check_ai_turn(Game *game) {
         // En mode local, l'IA joue le joueur 2 (tours impairs)
         is_ai_turn = 1;
     } else if (game->game_mode == SERVER && (game->turn % 2 == 1)) {
-        // En mode serveur, l'IA joue le serveur (tours impairs)
+        // En mode serveur, l'IA joue le serveur = P2 (tours impairs)
         is_ai_turn = 1;
     } else if (game->game_mode == CLIENT && (game->turn % 2 == 0)) {
-        // En mode client, l'IA joue le client (tours pairs)
+        // En mode client, l'IA joue le client = P1 (tours pairs)
         is_ai_turn = 1;
     }
     
     if (is_ai_turn) {
-        printf("[AI] C'est le tour de l'IA (tour %d)\n", game->turn);
+        printf("[AI] C'est le tour de l'IA (tour %d, mode %s)\n", 
+               game->turn, 
+               game->game_mode == LOCAL ? "LOCAL" : 
+               game->game_mode == SERVER ? "SERVER" : "CLIENT");
+        
         if (game->game_mode == LOCAL) {
             ai_next_move(game);
             display_request_redraw();
         } else {
-            sleep(500000); // 500ms de délai
+            // Délai plus long pour le mode réseau (2 secondes)
+            printf("[AI] IA réfléchit...\n");
+            usleep(2000000); // 2 secondes de délai
             ai_network_move(game);
         }
     }
