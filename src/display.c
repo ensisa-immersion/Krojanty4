@@ -3,19 +3,23 @@
 #include "game.h"
 #include "input.h"
 
-/* === Référence globale du DrawingArea (sert pour redraw thread-safe) === */
+/* Référence globale du DrawingArea (sert pour redraw thread-safe) */
 static GtkWidget *g_main_drawing_area = NULL;
 
-/* === Variables pour gérer les clics source/destination === */
+/* Variables pour gérer les clics source/destination */
 static gboolean have_source = FALSE;
 static int src_r = -1, src_c = -1;
 
-/* === Variables pour stocker les mouvements possibles === */
+/* Variables pour stocker les mouvements possibles */
 #define MAX_POSSIBLE_MOVES 64
 static int possible_moves[MAX_POSSIBLE_MOVES][2];
 static int num_possible_moves = 0;
 
-/* === Fonction pour forcer le redraw depuis n'importe quel thread === */
+/**
+ * Constantes pour la taille de la grille et des cellules
+ * Ces valeurs peuvent être ajustées pour changer la taille de la grille
+ * dans la fenêtre.
+ */
 static gboolean force_redraw_callback(gpointer data) {
     (void)data;
     if (g_main_drawing_area) {
@@ -29,7 +33,10 @@ void display_request_redraw(void) {
     g_idle_add(force_redraw_callback, NULL);
 }
 
-/* === Calculer les mouvements possibles pour une pièce === */
+/**
+ * Calcule les mouvements possibles pour une pièce donnée.
+ * Remplit le tableau possible_moves et met à jour num_possible_moves.
+ */
 static void calculate_possible_moves(Game *game, int row, int col) {
     num_possible_moves = 0;
 
@@ -69,7 +76,13 @@ static void calculate_possible_moves(Game *game, int row, int col) {
     }
 }
 
-/* === Vérifier si une position est dans la liste des mouvements possibles === */
+/**
+ * Vérifie si une position donnée est dans les mouvements possibles.
+ * 
+ * @param row La ligne à vérifier
+ * @param col La colonne à vérifier
+ * @return TRUE si la position est un mouvement possible, FALSE sinon
+ */
 static gboolean is_possible_move(int row, int col) {
     for (int i = 0; i < num_possible_moves; i++) {
         if (possible_moves[i][0] == row && possible_moves[i][1] == col) {
@@ -79,7 +92,16 @@ static gboolean is_possible_move(int row, int col) {
     return FALSE;
 }
 
-// Helper function to draw scores and messages
+/**
+ * Dessine l'interface utilisateur (scores, messages, coordonnées).
+ * @param cr Le contexte Cairo pour le dessin
+ * @param game Le pointeur vers l'état du jeu
+ * @param start_x La position x de départ de la grille
+ * @param start_y La position y de départ de la grille
+ * @param grid_width La largeur totale de la grille
+ * @param grid_height La hauteur totale de la grille
+ * @return void
+ */
 void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, int grid_height) {
     // Compute player scores
     int player_one_score = score_player_one(*game);
@@ -191,7 +213,15 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
 }
 
 
-// Actual drawing part
+/**
+ * Fonction de callback pour dessiner la grille et les pièces.
+ * @param area Le DrawingArea GTK
+ * @param cr Le contexte Cairo pour le dessin
+ * @param width La largeur de la zone de dessin
+ * @param height La hauteur de la zone de dessin
+ * @param user_data Pointeur vers l'état du jeu (Game*)
+ * @return void
+ */
 void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpointer user_data) {
     Game* game = (Game*) user_data;
 
@@ -305,7 +335,17 @@ void draw_callback(GtkDrawingArea *area, cairo_t *cr, int width, int height, gpo
     }
 }
 
-/* ------- Gestion du clic souris -------- */
+/**
+ * Callback pour gérer les clics de souris.
+ * Gère la sélection source/destination et appelle on_user_move_decided.
+ * 
+ * @param gesture Le geste de clic
+ * @param n_press Le nombre de pressions (1 pour simple clic)
+ * @param x La position x du clic
+ * @param y La position y du clic
+ * @param user_data Pointeur vers l'état du jeu (Game*)
+ * @return void
+ */
 static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gdouble y, gpointer user_data) {
     (void)gesture;
     (void)n_press;
@@ -359,7 +399,14 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
     }
 }
 
-/* ------- Création de la fenêtre GTK -------- */
+/**
+ * Callback pour l'activation de l'application GTK.
+ * Crée la fenêtre principale, le DrawingArea, et configure les événements.
+ * 
+ * @param app Le GtkApplication
+ * @param user_data Pointeur vers l'état du jeu (Game*)
+ * @return void
+ */
 static void on_app_activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window;
     GtkWidget *frame;

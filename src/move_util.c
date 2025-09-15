@@ -6,12 +6,21 @@
 /* Mappage des colonnes A-I */
 const char COLS_MAP[10] = "ABCDEFGHI";
 
+/**
+ * Convertit une lettre de colonne (A-I) en indice (0-8).
+ * Retourne -1 si la lettre est invalide.
+ */
 int col_from_letter(char L) {
     for (int i = 0; i < 9; i++) if (COLS_MAP[i] == L) return i;
     return -1;
 }
 
-/* Exécuté dans le thread GTK (via g_idle_add) */
+/**
+ * Applique un mouvement dans le thread GTK.
+ * 
+ * @param data Pointeur vers une structure MoveTask.
+ * @return G_SOURCE_REMOVE pour indiquer que la tâche est terminée.
+ */
 gboolean apply_move_idle(gpointer data) {
     MoveTask *t = (MoveTask*)data;
     /* 1) positionne la case source*/
@@ -25,7 +34,12 @@ gboolean apply_move_idle(gpointer data) {
     return G_SOURCE_REMOVE;
 }
 
-/* Convertit "A2B2" → indices (0..8) et poste vers le thread GTK */
+/**
+ * Poste un mouvement reçu (format "A1B2") pour qu'il soit appliqué dans le thread GTK.
+ * @param game Pointeur vers la structure de jeu.
+ * @param m Chaîne de caractères représentant le mouvement (4 caractères).
+ * @return void
+ */
 void post_move_to_gtk(Game *game, const char m[4]) {
     int sc = col_from_letter(m[0]);
     int sr = 9 - (m[1] - '0');

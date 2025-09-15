@@ -6,9 +6,6 @@
 #include <unistd.h>
 #include <stddef.h>
 
-/* Envoie exactement len octets (gère les envois partiels/EINTR). 
- * Retour: 0 succès, -1 erreur (errno défini).
- */
 static inline int send_all(int fd, const void *buf, size_t len) {
     const char *p = (const char*)buf;
     size_t off = 0;

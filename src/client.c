@@ -12,10 +12,17 @@
 #include "netutil.h"
 #include "move_util.h"
 
-/* Socket client global*/
+/* Client global du socket */
 int g_client_socket = -1;
 
-/* ===== Connexion au serveur ===== */
+/**
+ * Fonction de connexion au serveur.
+ * Retourne le socket connecté, ou -1 en cas d’erreur.
+ * 
+ * @param ip Adresse IP du serveur
+ * @param port Port du serveur
+ * @return Socket connecté, ou -1 en cas d’erreur
+ */
 int connect_to_server(const char *ip, int port) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) { perror("socket"); return -1; }
@@ -39,7 +46,13 @@ int connect_to_server(const char *ip, int port) {
     return s;
 }
 
-/* ===== Envoi d’un coup (4 octets) ===== */
+/**
+ * Envoie un message de 4 caractères au serveur.
+ * 
+ * @param client_socket Socket connecté au serveur
+ * @param move4 Message de 4 caractères à envoyer
+ * @return void
+ */
 void send_message(int client_socket, const char *move4) {
     if (!move4 || strlen(move4) != 4) {
         fprintf(stderr, "[CLIENT] move invalide (attendu 4 chars)\n");
@@ -54,9 +67,16 @@ void send_message(int client_socket, const char *move4) {
     }
 }
 
-/* ===== Thread de réception client ===== */
+/* Contexte du thread de réception */
 typedef struct { int sock; Game *game; } ClientRxCtx;
 
+/**
+ * Thread de réception des messages du serveur.
+ * Applique les coups reçus sur l’interface graphique.
+ *
+ * @param arg Contexte du thread (ClientRxCtx*)
+ * @return NULL
+ */
 static void *client_rx_thread(void *arg) {
     ClientRxCtx *ctx = (ClientRxCtx*)arg;
     int s = ctx->sock;
@@ -86,7 +106,13 @@ static void *client_rx_thread(void *arg) {
     return NULL;
 }
 
-/* Démarrage du RX*/
+/**
+ * Démarre le thread de réception des messages du serveur.
+ * Le thread applique les coups reçus sur l’interface graphique.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @return 0 si succès, -1 en cas d’erreur
+ */
 int start_client_rx(Game *game) {
     if (g_client_socket < 0) return -1;
     pthread_t th;
@@ -103,6 +129,11 @@ int start_client_rx(Game *game) {
     return 0;
 }
 
+/**
+ * Ferme la connexion au serveur et libère les ressources.
+ * 
+ * @return void
+ */
 void client_close(void) {
     if (g_client_socket >= 0) {
         close(g_client_socket);

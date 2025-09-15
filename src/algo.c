@@ -5,7 +5,15 @@
 
 #define DEPTH 3
 
-// Lighter version of update board
+/**
+ * Fonction de mise à jour du plateau pour l'IA
+ * Elle est similaire à update_board mais sans SDL_Delay.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param dst_row Ligne de destination
+ * @param dst_col Colonne de destination
+ * @return void
+ */
 void update_board_ai(Game * game, int dst_row, int dst_col) {
     int src_row = game->selected_tile[0];
     int src_col = game->selected_tile[1];
@@ -30,7 +38,14 @@ void update_board_ai(Game * game, int dst_row, int dst_col) {
 
 
 
-//Helper function that updates board with move
+/**
+ * Fonction de mise à jour du plateau avec un mouvement donné.
+ * Elle met à jour la position sélectionnée et appelle update_board_ai.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param move Mouvement à appliquer
+ * @return void
+ */
 void update_with_move(Game * game, Move move) {
     game->selected_tile[0] = move.src_row;
     game->selected_tile[1] = move.src_col;
@@ -38,7 +53,14 @@ void update_with_move(Game * game, Move move) {
 }
 
 
-// Computes how well a situation is
+/**
+ * Fonction d'évaluation de l'état du jeu pour un joueur donné.
+ * Elle combine le score des joueurs et la mobilité.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param player Joueur pour lequel évaluer (P1 ou P2)
+ * @return Score évalué
+ */
 int utility(Game * game, Player player) {
     int score_one = 10 * score_player_one(*game);
     int score_two = 10 * score_player_two(*game);
@@ -57,7 +79,14 @@ int utility(Game * game, Player player) {
 }
 
 
-// Helper function that returns the number of possible moves and modifies a list to contain them
+/**
+ * Génère tous les mouvements possibles pour un joueur donné.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param list Tableau pour stocker les mouvements possibles
+ * @param player Joueur pour lequel générer les mouvements (P1 ou P2)
+ * @return Nombre de mouvements générés
+ */
 int all_possible_moves(Game * game, Move * list, Player player) {
     int size = 0;
     for (int i = 0; i < 9; i++) {
@@ -99,7 +128,14 @@ int all_possible_moves(Game * game, Move * list, Player player) {
 }
 
 
-// Qsort function (merci les heures sur leetcode)
+/**
+ * Fonction de comparaison pour qsort
+ * Trie les mouvements par score décroissant (merci les heures sur leetcode)
+ * 
+ * @param a Pointeur vers le premier mouvement
+ * @param b Pointeur vers le second mouvement
+ * @return Entier indiquant l'ordre des mouvements
+ */
 int compare_moves_desc(const void *a, const void *b) {
     ScoredMove *m1 = (ScoredMove*)a;
     ScoredMove *m2 = (ScoredMove*)b;
@@ -107,7 +143,12 @@ int compare_moves_desc(const void *a, const void *b) {
     return m2->score - m1->score;
 }
 
-// Ordered move to help make alpha-beta pruning more efficient
+/**
+ * Génère tous les mouvements possibles pour un joueur donné, les évalue et les trie par score décroissant.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param move_list Tableau pour stock
+ */
 int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
     ScoredMove scored_moves[10*16];
     int size = 0;
@@ -161,7 +202,18 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
 }
 
 
-// Minimax algorithm to predict the score for a position
+/**
+ * Minimax avec élagage alpha-bêta
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param depth Profondeur actuelle de l'arbre
+ * @param maximizing Booléen indiquant si on maximise ou minimise
+ * @param alpha Valeur alpha pour l'élagage
+ * @param beta Valeur beta pour l'élagage
+ * @param initial_player Joueur initial pour l'évaluation
+ * 
+ * @return Score évalué
+ */
 int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int beta, Player initial_player) {
     if (depth == 0 || game->won) return utility(game, initial_player);
     Player current_player = ( (game->turn & 1) == 1) ? P2 : P1;
@@ -204,7 +256,13 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
 }
 
 
-// Checks score for each move possible and returns best move
+/**
+ * Fonction principale pour obtenir le meilleur mouvement en utilisant minimax avec élagage alpha-bêta
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param depth Profondeur maximale pour la recherche
+ * @return Meilleur mouvement trouvé
+ */
 Move minimax_best_move(Game * game, int depth) {
     Player current_player = ( (game->turn & 1) == 0) ? P1 : P2;
 
@@ -229,6 +287,12 @@ Move minimax_best_move(Game * game, int depth) {
     return best_move;
 }
 
+/**
+ * Premier mouvement fixe pour l'IA
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @return void
+ */
 void client_first_move(Game * game) {
     printf("DEBUG first move\n");
     fflush(stdout);
@@ -240,7 +304,12 @@ void client_first_move(Game * game) {
 }
 
 
-// Returns computed move
+/**
+ * Fonction principale pour que l'IA joue son prochain mouvement.
+ *
+ * @param game Pointeur vers la structure de jeu
+ * @return void
+ */
 void ai_next_move(Game* game) {
     Game copy = *game;
     copy.is_ai = 0; // Makes it look like a local game for the AI not to call itself

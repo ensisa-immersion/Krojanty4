@@ -15,7 +15,17 @@ void send_message(int client_socket, const char *move4);
 extern int g_server_client_socket;
 void send_message_to_client(int server_socket, const char *move4);
 
-/* Ex: appelé après que l'utilisateur ait choisi une destination valide */
+/**
+ * Gestion du clic souris pour sélectionner source/destination
+ * et appeler on_user_move_decided.
+ * 
+ * @param gesture Le geste de clic
+ * @param n_press Le nombre de pressions (1 pour simple clic)
+ * @param x La position x du clic
+ * @param y La position y du clic
+ * @param user_data Pointeur vers l'état du jeu (Game*)
+ * @return void
+ */
 void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c) {
     /* Prépare le message de mouvement */
     char move[5];
@@ -31,7 +41,6 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         game->selected_tile[1] = src_c;
         update_board(game, dst_r, dst_c);
         display_request_redraw();
-
     } else {
         /* Mode réseau : vérifier que c'est le bon tour avant d'autoriser le coup */
         printf("[MOVE] Tentative coup: %s (Tour %d)\n", move, game->turn);

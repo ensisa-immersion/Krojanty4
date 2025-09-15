@@ -14,7 +14,15 @@
 /* Socket du client connecté (pour que le serveur puisse lui envoyer ses coups) */
 int g_server_client_socket = -1;
 
-/* Fonction pour envoyer un coup du serveur au client */
+
+/**
+ * Envoie un coup (4 chars) au client connecté.
+ * Vérifie que le socket et le coup sont valides.
+ * 
+ * @param server_socket Socket du client (g_server_client_socket)
+ * @param move4 Coup à envoyer (4 chars)
+ * @return void
+ */
 void send_message_to_client(int server_socket, const char *move4) {
     if (!move4 || strlen(move4) != 4) {
         fprintf(stderr, "[SERVER] move invalide (attendu 4 chars)\n");
@@ -38,6 +46,15 @@ typedef struct {
     Game *game;     /* si serveur-host applique aussi localement utiliser post_move_to_gtk */
 } SrvRxCtx;
 
+
+/**
+ * Thread de réception des coups d'un client.
+ * Applique le coup reçu sur l'interface locale (si game non NULL).
+ * Relais le coup au pair (si other_sock >= 0).
+ * 
+ * @param arg SrvRxCtx* (socket, socket pair, game)
+ * @return NULL
+ */
 static void *server_client_rx(void *arg) {
     SrvRxCtx *ctx = (SrvRxCtx*)arg;
     int me = ctx->me_sock, other = ctx->other_sock;
@@ -79,6 +96,13 @@ static void *server_client_rx(void *arg) {
     return NULL;
 }
 
+
+/**
+ * Crée une socket TCP en écoute sur le port donné.
+ * 
+ * @param port Port à écouter
+ * @return Socket en écoute, ou -1 en cas d'erreur
+ */
 static int create_listen_socket(int port) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) { perror("socket"); return -1; }
@@ -102,7 +126,16 @@ static int create_listen_socket(int port) {
     return s;
 }
 
-/* Lance un match 1v1: attend 2 clients, crée 2 threads RX croisés */
+
+/**
+ * Lance un serveur 1v1 (2 clients).
+ * Accepte 2 connexions, puis démarre 2 threads RX pour relayer les
+ * coups entre les clients.
+ * 
+ * @param game Game* (peut être NULL si pas d'interface locale)
+ * @param port Port à écouter
+ * @return 0 si succès, -1 en cas d'erreur
+ */
 int run_server_1v1(Game *game, int port) {
     int ls = create_listen_socket(port);
     if (ls < 0) return -1;
@@ -148,6 +181,16 @@ int run_server_1v1(Game *game, int port) {
     return 0;
 }
 
+
+/**
+ * Lance un serveur-host (1 client + interface locale).
+ * Accepte 1 connexion, puis démarre un thread RX pour recevoir
+ * les coups du client.
+ * 
+ * @param game Game* (doit être non NULL pour appliquer les coups reçus)
+ * @param port Port à écouter
+ * @return 0 si succès, -1 en cas d'erreur
+ */
 int run_server_host(Game *game, int port) {
     int ls = create_listen_socket(port);
     if (ls < 0) return -1;

@@ -18,16 +18,20 @@ typedef struct {
     int initialized;
 } logger_t;
 
-// Global logger instance
+// Variable globale du logger
 static logger_t g_logger = {0};
 
-// Private function prototypes
+// Fonctions privées
 static const char* log_level_to_string(log_level_t level);
 static void get_timestamp(char* buffer, size_t buffer_size);
 static int find_next_log_file(const char* base_filename, char* result_filename, size_t filename_len);
 
 /**
- * Initialize the logger with base filename
+ * Initialise le logger avec le nom de fichier de base et le niveau minimum.
+ * Crée un nouveau fichier de log avec un numéro incrémental si le fichier existe déjà.
+ * @param base_filename Le nom de fichier de base pour les logs
+ * @param min_level Le niveau minimum de log à enregistrer
+ * @return 0 si succès, -1 si erreur
  */
 int logger_init(const char* base_filename, log_level_t min_level) {
     if (!base_filename || strlen(base_filename) == 0) {
@@ -35,19 +39,16 @@ int logger_init(const char* base_filename, log_level_t min_level) {
         return -1;
     }
 
-    // Clean up any existing logger
     logger_cleanup();
 
-    // Find the next available log file
     if (find_next_log_file(base_filename, g_logger.filename, MAX_FILENAME_LEN) != 0) {
-        fprintf(stderr, "Logger init error: Cannot determine log filename\n");
+        fprintf(stderr, "Erreur init logger : Impossible de déterminer le nom du fichier.\n");
         return -1;
     }
 
-    // Open the log file
     g_logger.file = fopen(g_logger.filename, "w");  // Create new file
     if (!g_logger.file) {
-        fprintf(stderr, "Logger init error: Cannot open log file '%s': %s\n", 
+        fprintf(stderr, "Erreur init logger : Impossible d'ouvrir le fichier '%s': %s\n", 
                 g_logger.filename, strerror(errno));
         return -1;
     }
@@ -58,20 +59,16 @@ int logger_init(const char* base_filename, log_level_t min_level) {
     g_logger.min_level = min_level;
     g_logger.initialized = 1;
 
-    printf("Logger initialized: %s\n", g_logger.filename);
-    
-    // Log initialization message
-    LOG_INFO_MSG("Logger initialized - %s", g_logger.filename);
-    
     return 0;
 }
 
 /**
- * Clean up logger resources
+ * Nettoie et ferme le logger.
+ * @return void
  */
 void logger_cleanup(void) {
     if (g_logger.initialized && g_logger.file) {
-        LOG_INFO_MSG("Logger shutting down");
+        LOG_INFO_MSG("Extinction du logger...");
         fclose(g_logger.file);
     }
     
@@ -79,28 +76,31 @@ void logger_cleanup(void) {
 }
 
 /**
- * Log a message with specified level
+ * Enregistre un message de log avec le niveau spécifié.
+ * @param level Le niveau de log
+ * @param format La chaîne de format (comme printf)
+ * @param ... Les arguments pour la chaîne de format
+ * @return 0 si succès, -1 si erreur
  */
 int logger_log(log_level_t level, const char* format, ...) {
     if (!g_logger.initialized || !g_logger.file) {
-        fprintf(stderr, "Logger error: Logger not initialized\n");
+        fprintf(stderr, "Erreur logger : Non initialisé\n");
         return -1;
     }
 
     if (!format) {
-        fprintf(stderr, "Logger error: Format string is NULL\n");
+        fprintf(stderr, "Erreur logger : String de format est NULL\n");
         return -1;
     }
 
     if (level < g_logger.min_level) {
-        return 0; // Skip logging below minimum level
+        return 0; // Skip logging en dessous du niveau minimum
     }
 
-    // Get timestamp
     char timestamp[64];
     get_timestamp(timestamp, sizeof(timestamp));
 
-    // Format the log message
+    // Formattage du message
     char message[MAX_LOG_MESSAGE_LEN];
     va_list args;
     va_start(args, format);
@@ -108,32 +108,32 @@ int logger_log(log_level_t level, const char* format, ...) {
     va_end(args);
 
     if (msg_len < 0) {
-        fprintf(stderr, "Logger error: Failed to format message\n");
+        fprintf(stderr, "Erreur logger : Impossible de formatter le message\n");
         return -1;
     }
 
-    // Truncate message if too long
+    // Tronquer si le message est trop long
     if (msg_len >= MAX_LOG_MESSAGE_LEN) {
         message[MAX_LOG_MESSAGE_LEN - 1] = '\0';
     }
 
-    // Write to log file
     int result = fprintf(g_logger.file, "[%s] [%s] %s\n", 
                         timestamp, log_level_to_string(level), message);
     
     if (result < 0) {
-        fprintf(stderr, "Logger error: Failed to write to log file: %s\n", strerror(errno));
+        fprintf(stderr, "Erreur logger : Impossible d'écrire dans le fichier de log : %s\n", strerror(errno));
         return -1;
     }
 
-    // Flush the buffer to ensure immediate write
+    // Flush pour write immédiat
     fflush(g_logger.file);
 
     return 0;
 }
 
 /**
- * Get the current log filename being used
+ * Obtient le nom du fichier de log actuel.
+ * @return Le nom du fichier de log, ou NULL si non initialisé
  */
 const char* logger_get_filename(void) {
     if (!g_logger.initialized) {
@@ -143,14 +143,17 @@ const char* logger_get_filename(void) {
 }
 
 /**
- * Check if logger is initialized
+ * Vérifie si le logger est initialisé.
+ * @return 1 si initialisé, 0 sinon
  */
 int logger_is_initialized(void) {
     return g_logger.initialized;
 }
 
 /**
- * Convert log level enum to string
+ * Convertit le niveau de log en chaîne de caractères.
+ * @param level Le niveau de log
+ * @return La chaîne de caractères correspondante
  */
 static const char* log_level_to_string(log_level_t level) {
     switch (level) {
@@ -163,7 +166,10 @@ static const char* log_level_to_string(log_level_t level) {
 }
 
 /**
- * Get formatted timestamp
+ * Obtient le timestamp actuel formaté en chaîne.
+ * @param buffer Le buffer pour stocker le timestamp
+ * @param buffer_size La taille du buffer
+ * @return void
  */
 static void get_timestamp(char* buffer, size_t buffer_size) {
     if (!buffer || buffer_size == 0) return;
@@ -183,32 +189,32 @@ static void get_timestamp(char* buffer, size_t buffer_size) {
 }
 
 /**
- * Find the next available log file number
+ * Obtient le prochain nom de fichier de log disponible en incrémentant un numéro.
+ * @param base_filename Le nom de fichier de base
+ * @param result_filename Le buffer pour stocker le nom de fichier résultant
+ * @param filename_len La taille du buffer
+ * @return 0 si succès, -1 si erreur (par exemple, trop de fichiers
  */
 static int find_next_log_file(const char* base_filename, char* result_filename, size_t filename_len) {
     struct stat st;
     int file_number = 0;
     
-    // First try the base filename without number
     if (stat(base_filename, &st) != 0) {
-        // File doesn't exist, use base filename
         strncpy(result_filename, base_filename, filename_len - 1);
         result_filename[filename_len - 1] = '\0';
         return 0;
     }
-    
-    // Base filename exists, try numbered versions
+
     do {
         file_number++;
         snprintf(result_filename, filename_len, "%s.%d", base_filename, file_number);
         
         if (stat(result_filename, &st) != 0) {
-            // File doesn't exist, use this number
             return 0;
         }
         
     } while (file_number < MAX_LOG_FILES);
     
-    fprintf(stderr, "Logger error: Too many log files (max: %d)\n", MAX_LOG_FILES);
+    fprintf(stderr, "Erreur logger : Trop de fichier de log (max: %d)\n", MAX_LOG_FILES);
     return -1;
 }

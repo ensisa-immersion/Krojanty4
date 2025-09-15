@@ -2,7 +2,13 @@
 #include "game.h"
 #include "display.h"
 
-// Initialize the game to play
+
+/**
+ * Initialise une nouvelle partie avec le mode de jeu et l'IA spécifiés.
+ * @param mode Le mode de jeu (LOCAL, SERVER, CLIENT)
+ * @param artificial_intelligence 1 si l'IA est activée, 0 sinon
+ * @return Une structure Game initialisée
+ */
 Game init_game(GameMode mode, int artificial_intelligence) {
     (void)mode;                    // évite warnings si pas utilisé partout
     (void)artificial_intelligence; // idem
@@ -42,7 +48,12 @@ Game init_game(GameMode mode, int artificial_intelligence) {
 }
 
 
-// Return player 1's score
+/**
+ * Retourne le score du joueur 1.
+ * 
+ * @param game La structure de jeu contenant l'état actuel du plateau.
+ * @return Le score du joueur 1.
+ */
 int score_player_one(Game game) {
     int player_one_score = 0;
     for (int i = 0; i < 9; i++) {
@@ -54,7 +65,12 @@ int score_player_one(Game game) {
     return player_one_score;
 }
 
-// Reutns player 2's score
+/**
+ * Retourne le score du joueur 2.
+ * 
+ * @param game La structure de jeu contenant l'état actuel du plateau.
+ * @return Le score du joueur 2.
+ */
 int score_player_two(Game game) {
     int player_two_score = 0;
     for (int i = 0; i < 9; i++) {
@@ -120,14 +136,27 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
 }
 
 
-// Returns player based on tile
+/**
+ * Retourne le joueur associé à une pièce donnée.
+ * @param piece La pièce dont on veut connaître le joueur.
+ * @return Le joueur (P1, P2) ou NOT_PLAYER si la pièce n
+ */
 Player get_player(Piece piece) {
     if (piece == P1_PAWN || piece == P1_KING) return P1;
     if (piece == P2_PAWN || piece == P2_KING) return P2;
     return NOT_PLAYER;
 }
 
-// Helper function to assure pawns are eating eachother
+/**
+ * Vérifie et effectue les captures après un déplacement.
+ * 
+ * @param game Pointeur vers la structure de jeu contenant l'état actuel du plateau et le tour.
+ * @param row La ligne où la pièce a été déplacée.
+ * @param col La colonne où la pièce a été déplacée.
+ * @param sprint_direction La direction du déplacement (DIR_TOP, DIR_DOWN, DIR_LEFT,
+ * DIR_RIGHT).
+ * @return void
+ */
 void did_eat(Game* game, int row, int col, Direction sprint_direction) {
     Player opponent = (game->turn % 2 == 0) ? P2 : P1;
     Player player = (game->turn % 2 == 0) ? P1 : P2;
@@ -168,7 +197,12 @@ void did_eat(Game* game, int row, int col, Direction sprint_direction) {
     }
 }
 
-/* Vérifie qui a gagné la partie */
+
+/**
+ * Vérifie les conditions de victoire et met à jour l'état du jeu.
+ * @param game Pointeur vers la structure de jeu contenant l'état actuel du plateau et le tour.
+ * @return void
+ */
 void won(Game* game) {
     if (game->board[8][8] == P1_KING) {
         game->won = P1;
@@ -238,7 +272,13 @@ void won(Game* game) {
 }
 
 
-// Update pieces in a LAN game
+/**
+ * Met à jour le plateau de jeu pour le mode LAN.
+ * Dans ce mode, il n'y a pas de coups automatiques.
+ * 
+ * @param game Pointeur vers la structure de jeu contenant l'état actuel du plateau et le tour.
+ * @return 1 si la mise à jour est réussie, sinon 0.
+ */
 int update_board_lan(Game* game) {
     // Plus de coups automatiques - la synchronisation se fait via le réseau
     (void)game; // Éviter le warning de paramètre non utilisé
@@ -246,7 +286,10 @@ int update_board_lan(Game* game) {
 }
 
 
-// Changes pieces placing around the board
+/**
+ * Met à jour le plateau de jeu en fonction du déplacement effectué.
+ * Vérifie si le déplacement est légal, effectue le déplacement, gère les captures,
+ */
 void update_board(Game *game, int dst_row, int dst_col) {
     int src_row = game->selected_tile[0];
     int src_col = game->selected_tile[1];
