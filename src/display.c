@@ -429,10 +429,36 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
                 gtk_widget_queue_draw(g_main_drawing_area);
             }
         } else {
-            printf("[CLICK] Destination: %d,%d\n", row, col);
-            on_user_move_decided(game, src_r, src_c, row, col);
+            // Si on clique sur la même pièce, on la désélectionne
+            if (row == src_r && col == src_c) {
+                printf("[CLICK] Désélection de la pièce %d,%d\n", src_r, src_c);
+                have_source = FALSE;
+                src_r = -1;
+                src_c = -1;
+                num_possible_moves = 0;
+                gtk_widget_queue_draw(g_main_drawing_area);
+                return;
+            }
+            
+            // Vérifier si le mouvement est possible avant de l'envoyer
+            int move_valid = 0;
+            for (int i = 0; i < num_possible_moves; i++) {
+                if (possible_moves[i][0] == row && possible_moves[i][1] == col) {
+                    move_valid = 1;
+                    break;
+                }
+            }
+            
+            if (move_valid) {
+                printf("[CLICK] Destination valide: %d,%d\n", row, col);
+                on_user_move_decided(game, src_r, src_c, row, col);
+            } else {
+                printf("[CLICK] Destination invalide: %d,%d (coup ignoré)\n", row, col);
+                // On garde la sélection actuelle, on ne fait rien
+                return;
+            }
 
-            // Réinitialiser la sélection
+            // Réinitialiser la sélection seulement si le coup était valide
             have_source = FALSE;
             src_r = -1;
             src_c = -1;

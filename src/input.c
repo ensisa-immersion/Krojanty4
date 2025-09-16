@@ -199,6 +199,25 @@ void check_ai_turn(Game *game) {
  * @return void
  */
 void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c) {
+    // Validation basique des coordonnées
+    if (src_r < 0 || src_r >= GRID_SIZE || src_c < 0 || src_c >= GRID_SIZE ||
+        dst_r < 0 || dst_r >= GRID_SIZE || dst_c < 0 || dst_c >= GRID_SIZE) {
+        printf("[INPUT] Coordonnées invalides: src(%d,%d) dst(%d,%d)\n", src_r, src_c, dst_r, dst_c);
+        return;
+    }
+    
+    // Vérifier qu'il y a bien une pièce à la source
+    if (game->board[src_r][src_c] == P_NONE) {
+        printf("[INPUT] Aucune pièce à la source (%d,%d)\n", src_r, src_c);
+        return;
+    }
+    
+    // Vérifier que le mouvement est valide avec la logique du jeu
+    if (!is_move_legal(game, src_r, src_c, dst_r, dst_c)) {
+        printf("[INPUT] Mouvement invalide de (%d,%d) vers (%d,%d)\n", src_r, src_c, dst_r, dst_c);
+        return;
+    }
+
     /* Prépare le message de mouvement */
     char move[5];
     move[0] = COLS_MAP[src_c];
