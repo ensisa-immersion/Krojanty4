@@ -7,9 +7,9 @@
  * Log levels enumeration
  */
 typedef enum {
-    LOG_SUCCESS,
     LOG_DEBUG,
     LOG_INFO,
+    LOG_SUCCESS,
     LOG_WARN,
     LOG_ERROR
 } log_level_t;

@@ -14,6 +14,7 @@ int main(void) {
     }
 
     // Exemples de messages
+    LOG_SUCCESS_MSG("Logger initialisé avec succès");
     LOG_INFO_MSG("Démarrage application");
     LOG_DEBUG_MSG("ID processus = %d", getpid());
     LOG_WARN_MSG("Message d'alerte");
