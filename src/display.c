@@ -428,10 +428,10 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
             if (game->board[row][col] != P_NONE) {
 
                 // Vérifier que la pièce appartient au joueur courant
-                Player joueur_courant = current_player_turn(game);
+                Player current_player = current_player_turn(game);
                 Player piece_owner = get_player(game->board[row][col]);
-                if (piece_owner != joueur_courant) {
-                    // printf("[CLICK] Impossible de sélectionner une pièce adverse !\n");
+                if (piece_owner != current_player) {
+                    printf("[CLICK] Impossible de sélectionner une pièce adverse !\n");
                     return;
                 }
 
