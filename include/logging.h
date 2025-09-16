@@ -7,6 +7,7 @@
  * Log levels enumeration
  */
 typedef enum {
+    LOG_SUCCESS,
     LOG_DEBUG,
     LOG_INFO,
     LOG_WARN,
@@ -54,6 +55,7 @@ const char* logger_get_filename(void);
 int logger_is_initialized(void);
 
 // Convenience macros for different log levels
+#define LOG_SUCCESS_MSG(fmt, ...) logger_log(LOG_SUCCESS, fmt, ##__VA_ARGS__)
 #define LOG_DEBUG_MSG(fmt, ...) logger_log(LOG_DEBUG, fmt, ##__VA_ARGS__)
 #define LOG_INFO_MSG(fmt, ...)  logger_log(LOG_INFO, fmt, ##__VA_ARGS__)
 #define LOG_WARN_MSG(fmt, ...)  logger_log(LOG_WARN, fmt, ##__VA_ARGS__)

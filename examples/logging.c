@@ -8,7 +8,7 @@ int main(void) {
     // Mettre ici le nom de fichier de base.
     // Quand on démarre l'app, un nouveau fichier se crée
     // Un nombre va s'incrémenter dans le nom pour faire référence à la partie
-    if (logger_init("application.log", LOG_DEBUG) != 0) {
+    if (logger_init("logs/application.log", LOG_DEBUG) != 0) {
         fprintf(stderr, "Impossible d'initialiser le logger\n");
         return 1;
     }

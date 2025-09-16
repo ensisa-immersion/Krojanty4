@@ -22,7 +22,6 @@ static logger_t g_logger = {0};
 // Fonctions privées
 static const char* log_level_to_string(log_level_t level);
 static void get_timestamp(char* buffer, size_t buffer_size);
-static int find_next_log_file(const char* base_filename, char* result_filename, size_t filename_len);
 
 /**
  * Initialise le logger avec le nom de fichier de base et le niveau minimum.
@@ -39,12 +38,10 @@ int logger_init(const char* base_filename, log_level_t min_level) {
 
     logger_cleanup();
 
-    if (find_next_log_file(base_filename, g_logger.filename, MAX_FILENAME_LEN) != 0) {
-        fprintf(stderr, "Erreur init logger : Impossible de déterminer le nom du fichier.\n");
-        return -1;
-    }
+    strncpy(g_logger.filename, base_filename, MAX_FILENAME_LEN - 1);
+    g_logger.filename[MAX_FILENAME_LEN - 1] = '\0';
 
-    g_logger.file = fopen(g_logger.filename, "w");  // Create new file
+    g_logger.file = fopen(g_logger.filename, "a");
     if (!g_logger.file) {
         fprintf(stderr, "Erreur init logger : Impossible d'ouvrir le fichier '%s': %s\n", 
                 g_logger.filename, strerror(errno));
@@ -155,11 +152,12 @@ int logger_is_initialized(void) {
  */
 static const char* log_level_to_string(log_level_t level) {
     switch (level) {
-        case LOG_DEBUG: return "DEBUG";
-        case LOG_INFO:  return "INFO ";
-        case LOG_WARN:  return "WARN ";
-        case LOG_ERROR: return "ERROR";
-        default:        return "UNKN ";
+        case LOG_SUCCESS: return "SUCCESS";
+        case LOG_DEBUG: return "DEBUG  ";
+        case LOG_INFO:  return "INFO   ";
+        case LOG_WARN:  return "WARN   ";
+        case LOG_ERROR: return "ERROR  ";
+        default:        return "UNKN   ";
     }
 }
 
@@ -184,35 +182,4 @@ static void get_timestamp(char* buffer, size_t buffer_size) {
         strncpy(buffer, "UNKNOWN-TIME", buffer_size - 1);
         buffer[buffer_size - 1] = '\0';
     }
-}
-
-/**
- * Obtient le prochain nom de fichier de log disponible en incrémentant un numéro.
- * @param base_filename Le nom de fichier de base
- * @param result_filename Le buffer pour stocker le nom de fichier résultant
- * @param filename_len La taille du buffer
- * @return 0 si succès, -1 si erreur (par exemple, trop de fichiers
- */
-static int find_next_log_file(const char* base_filename, char* result_filename, size_t filename_len) {
-    struct stat st;
-    int file_number = 0;
-    
-    if (stat(base_filename, &st) != 0) {
-        strncpy(result_filename, base_filename, filename_len - 1);
-        result_filename[filename_len - 1] = '\0';
-        return 0;
-    }
-
-    do {
-        file_number++;
-        snprintf(result_filename, filename_len, "%s.%d", base_filename, file_number);
-        
-        if (stat(result_filename, &st) != 0) {
-            return 0;
-        }
-        
-    } while (file_number < MAX_LOG_FILES);
-    
-    fprintf(stderr, "Erreur logger : Trop de fichier de log (max: %d)\n", MAX_LOG_FILES);
-    return -1;
 }
