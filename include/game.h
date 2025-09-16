@@ -56,6 +56,7 @@ int score_player_two(Game game);
 // API used in server, client, AI, input
 void update_board(Game* game, int dst_row, int dst_col);
 Game init_game(GameMode mode, int artificial_intelligence);
+Player current_player_turn(Game* game);
 
 
 #endif // GAME_H_INCLUDED

@@ -30,11 +30,11 @@ gboolean ai_delayed_callback(gpointer data) {
     int is_ai_turn = 0;
     
     // Déterminer si c'est encore le tour de l'IA
-    if (game->game_mode == LOCAL && (game->turn % 2 == 1)) {
+    if (game->game_mode == LOCAL && current_player_turn(game) == P2) {
         is_ai_turn = 1;
-    } else if (game->game_mode == SERVER && (game->turn % 2 == 1)) {
+    } else if (game->game_mode == SERVER && current_player_turn(game) == P2) {
         is_ai_turn = 1;
-    } else if (game->game_mode == CLIENT && (game->turn % 2 == 0)) {
+    } else if (game->game_mode == CLIENT && current_player_turn(game) == P1) {
         is_ai_turn = 1;
     }
     
@@ -160,13 +160,13 @@ void check_ai_turn(Game *game) {
     int is_ai_turn = 0;
     
     // Déterminer si c'est le tour de l'IA
-    if (game->game_mode == LOCAL && (game->turn % 2 == 1)) {
+    if (game->game_mode == LOCAL && (current_player_turn(game) == P2)) {
         // En mode local, l'IA joue le joueur 2 (tours impairs)
         is_ai_turn = 1;
-    } else if (game->game_mode == SERVER && (game->turn % 2 == 1)) {
+    } else if (game->game_mode == SERVER && (current_player_turn(game) == P2)) {
         // En mode serveur, l'IA joue le serveur = P2 (tours impairs)
         is_ai_turn = 1;
-    } else if (game->game_mode == CLIENT && (game->turn % 2 == 0)) {
+    } else if (game->game_mode == CLIENT && (current_player_turn(game) == P1)) {
         // En mode client, l'IA joue le client = P1 (tours pairs)
         is_ai_turn = 1;
     }
@@ -228,7 +228,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
 
     if (game->game_mode == LOCAL) {
         /* Mode local : si IA activée, seul le joueur 1 peut jouer */
-        if (game->is_ai && (game->turn % 2 == 1)) {
+        if (game->is_ai && (current_player_turn(game) == P2)) {
             printf("[INPUT] IA contrôle le joueur 2, input humain bloqué\n");
             return;
         }
@@ -242,8 +242,11 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         printf("[MOVE] Tentative coup: %s (Tour %d)\n", move, game->turn);
 
         /* VALIDATION DU TOUR */
-        int is_server_turn = (game->turn % 2 == 1);  // Tours impaires = serveur (rouge)
-        int is_client_turn = (game->turn % 2 == 0);  // Tours pairs = client (bleu)
+        // int is_server_turn = (game->turn % 2 == 1);  // Tours impaires = serveur (rouge)
+        // int is_client_turn = (game->turn % 2 == 0);  // Tours pairs = client (bleu)
+        int is_server_turn = (current_player_turn(game) == P2);  // Tours impairs = serveur (rouge)
+        int is_client_turn = (current_player_turn(game) == P1); // Tours pairs = client (bleu)
+        // const char* current_player = is_server_turn ? "Serveur (Rouge)" : "Client (Bleu)";
         
         /* Bloquer l'input humain si l'IA contrôle ce joueur */
         if (game->is_ai) {

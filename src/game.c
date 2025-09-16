@@ -104,9 +104,9 @@ int is_move_legal(Game *game, int src_row, int src_col, int dst_row, int dst_col
     if (get_player(game->board[dst_row][dst_col]) != NOT_PLAYER) return 0;
 
     // Check turn ownership
-    if ((game->turn % 2 == 0) &&
+    if ((current_player_turn(game) == P1) &&
         (game->board[src_row][src_col] == P2_PAWN || game->board[src_row][src_col] == P2_KING)) return 0;
-    if ((game->turn % 2 == 1) &&
+    if ((current_player_turn(game) == P2) &&
         (game->board[src_row][src_col] == P1_PAWN || game->board[src_row][src_col] == P1_KING)) return 0;
 
     // Horizontal path check
@@ -151,8 +151,9 @@ Player get_player(Piece piece) {
  * @return void
  */
 void did_eat(Game* game, int row, int col, Direction sprint_direction) {
-    Player opponent = (game->turn % 2 == 0) ? P2 : P1;
-    Player player = (game->turn % 2 == 0) ? P1 : P2;
+    Player player = current_player_turn(game);
+    Player opponent = (player == P1) ? P2 : P1;
+    
 
     Player top = (row - 1 >= 0)? get_player(game->board[row - 1][col]) : NOT_PLAYER;
     Player left = (col - 1 >= 0)? get_player(game->board[row][col - 1]) : NOT_PLAYER;
@@ -322,4 +323,9 @@ void update_board(Game *game, int dst_row, int dst_col) {
         // Vérifier si l'IA doit jouer après ce changement d'état
         check_ai_turn(game);
     }
+}
+
+// Retourne le joueur dont c'est le tour actuel
+Player current_player_turn(Game *game) {
+    return (game->turn % 2 == 0) ? P1 : P2;
 }

@@ -35,11 +35,11 @@ static gboolean check_ai_periodic(gpointer user_data) {
     if (game->is_ai && game->won == NOT_PLAYER) {
         int should_ai_play = 0;
         
-        if (game->game_mode == LOCAL && (game->turn % 2 == 1)) {
+        if (game->game_mode == LOCAL && (current_player_turn(game) == P2)) {
             should_ai_play = 1;
-        } else if (game->game_mode == SERVER && (game->turn % 2 == 1)) {
+        } else if (game->game_mode == SERVER && (current_player_turn(game) == P2)) {
             should_ai_play = 1;
-        } else if (game->game_mode == CLIENT && (game->turn % 2 == 0)) {
+        } else if (game->game_mode == CLIENT && (current_player_turn(game) == P1)) {
             should_ai_play = 1;
         }
         
@@ -200,7 +200,7 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
             snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
         } else {
             /* Mode réseau : indiquer qui doit jouer */
-            int is_server_turn = (game->turn % 2 == 1);  // Tours impairs = serveur
+            int is_server_turn = (current_player_turn(game) == P2);  // Tours impairs = serveur
             const char* current_player = is_server_turn ? "Serveur (Rouge)" : "Client (Bleu)";
             const char* your_turn = "";
 
@@ -271,7 +271,7 @@ void draw_callback(GtkDrawingArea *area G_GNUC_UNUSED, cairo_t *cr, int width, i
     Game* game = (Game*) user_data;
 
     // Background
-    if (game->turn % 2 == 0) {
+    if (current_player_turn(game) == P1) {
         cairo_set_source_rgb(cr, 0.8, 0.9, 1); // Bleu pour client
     } else {
         cairo_set_source_rgb(cr, 1, 0.8, 0.8); // Rouge pour serveur
