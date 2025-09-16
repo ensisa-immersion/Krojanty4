@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "game.h"
 #include "algo.h"
@@ -123,13 +124,9 @@ UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
 
     // win / turn
     won(game);
-    if (game->won != NOT_PLAYER) {
-        // Game ended
-    } else {
+    if (game->won == NOT_PLAYER) {
         game->turn++;
     }
-
-    game->turn++;
 
     return undo;
 }
@@ -189,34 +186,117 @@ void update_with_move(Game * game, Move move) {
 
 
 /**
- * Fonction d'évaluation de l'état du jeu pour un joueur donné.
- * Elle combine le score des joueurs et la mobilité.
+ * Fonction d'évaluation avancée de l'état du jeu pour un joueur donné.
+ * Elle combine plusieurs facteurs stratégiques.
  *
  * @param game Pointeur vers la structure de jeu
  * @param player Joueur pour lequel évaluer (P1 ou P2)
  * @return Score évalué
  */
 int utility(Game * game, Player player) {
-    int score_one = 10 * score_player_one(*game);
-    int score_two = 10 * score_player_two(*game);
-
-    // Check win conditions
+    // Vérification des conditions de victoire (priorité absolue)
     if (game->won == P1) return (player == P1) ? 50000 : -50000;
     if (game->won == P2) return (player == P2) ? 50000 : -50000;
-    if (game->won == DRAW) return 0; // draw
+    if (game->won == DRAW) return 0;
 
+    int score_p1 = 0, score_p2 = 0;
+    
+    // 1. SCORE DE BASE : Compter les pièces (poids fort)
+    int pieces_p1 = score_player_one(*game);
+    int pieces_p2 = score_player_two(*game);
+    score_p1 += pieces_p1 * 100;  // Poids élevé pour les pièces
+    score_p2 += pieces_p2 * 100;
+    
+    // 2. MOBILITÉ : Plus de mouvements = meilleure position
     Move moves[10*16];
-    score_two += all_possible_moves(game, moves, P2);  // AI mobility
-    score_one += all_possible_moves(game, moves, P1);
-
+    int mobility_p1 = all_possible_moves(game, moves, P1);
+    int mobility_p2 = all_possible_moves(game, moves, P2);
+    score_p1 += mobility_p1 * 5;  // Bonus pour la mobilité
+    score_p2 += mobility_p2 * 5;
+    
+    // 3. CONTRÔLE DU CENTRE : Occuper le centre est avantageux
+    for (int i = 3; i <= 5; i++) {
+        for (int j = 3; j <= 5; j++) {
+            Player piece_owner = get_player(game->board[i][j]);
+            if (piece_owner == P1) score_p1 += 15;
+            if (piece_owner == P2) score_p2 += 15;
+        }
+    }
+    
+    // 4. POSITION AVANCÉE : Avancer vers l'adversaire
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
-            if (get_player(game->board[i][j]) == P2) score_two += 10;
-            if (get_player(game->board[i][j]) == P1) score_one += 10;
+            Player piece_owner = get_player(game->board[i][j]);
+            if (piece_owner == P1) {
+                // P1 veut avancer vers le bas (grandes valeurs de i)
+                score_p1 += i * 3;
+            }
+            if (piece_owner == P2) {
+                // P2 veut avancer vers le haut (petites valeurs de i)
+                score_p2 += (8 - i) * 3;
+            }
+        }
+    }
+    
+    // 5. PROTECTION DES ROIS : Les rois valent plus
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (game->board[i][j] == P1_KING) score_p1 += 50;
+            if (game->board[i][j] == P2_KING) score_p2 += 50;
+        }
+    }
+    
+    // 6. FORMATION : Bonus pour les pièces qui se protègent mutuellement
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            Player piece = get_player(game->board[i][j]);
+            if (piece != NOT_PLAYER) {
+                int allies_nearby = 0;
+                // Vérifier les cases adjacentes
+                for (int di = -1; di <= 1; di++) {
+                    for (int dj = -1; dj <= 1; dj++) {
+                        if (di == 0 && dj == 0) continue;
+                        int ni = i + di, nj = j + dj;
+                        if (ni >= 0 && ni < 9 && nj >= 0 && nj < 9) {
+                            if (get_player(game->board[ni][nj]) == piece) {
+                                allies_nearby++;
+                            }
+                        }
+                    }
+                }
+                if (piece == P1) score_p1 += allies_nearby * 8;
+                if (piece == P2) score_p2 += allies_nearby * 8;
+            }
+        }
+    }
+    
+    // 7. MENACES : Détecter les pièces adverses en danger
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            Player piece = get_player(game->board[i][j]);
+            if (piece != NOT_PLAYER) {
+                Player opponent = (piece == P1) ? P2 : P1;
+                int threats = 0;
+                
+                // Vérifier si cette pièce peut être capturée
+                int dirs[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+                for (int d = 0; d < 4; d++) {
+                    int ni = i + dirs[d][0];
+                    int nj = j + dirs[d][1];
+                    if (ni >= 0 && ni < 9 && nj >= 0 && nj < 9) {
+                        if (get_player(game->board[ni][nj]) == opponent) {
+                            threats++;
+                        }
+                    }
+                }
+                
+                if (piece == P1) score_p1 -= threats * 20;  // Malus pour être en danger
+                if (piece == P2) score_p2 -= threats * 20;
+            }
         }
     }
 
-    int final_score = (player == P2) ? score_two - score_one : score_one - score_two;
+    int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
     return final_score;
 }
 
@@ -357,7 +437,7 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
  * @return Score évalué
  */
 int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int beta, Player initial_player) {
-    if (depth == 0 || game->won) return utility(game, initial_player);
+    if (depth == 0 || game->won != NOT_PLAYER) return utility(game, initial_player);
     Player current_player = ( (game->turn & 1) == 1) ? P2 : P1;
 
     Move possible_moves[10 * 16]; // 10 pawns with 16 moves each at best (oui le dernier ne peux que faire 15 mouvements au max mais hassoul)
@@ -398,25 +478,55 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
 }
 
 /**
+ * Calcule la profondeur adaptative selon l'état du jeu
+ * @param game Pointeur vers la structure de jeu
+ * @return Profondeur recommandée
+ */
+int adaptive_depth(Game *game) {
+    int total_pieces = score_player_one(*game) + score_player_two(*game);
+    
+    // En fin de partie (peu de pièces), on peut se permettre plus de profondeur
+    if (total_pieces <= ENDGAME_PIECE_THRESHOLD) {
+        return DEPTH_ENDGAME;
+    }
+    
+    // En début/milieu de partie, profondeur normale
+    return DEPTH;
+}
+
+/**
  * Fonction principale pour obtenir le meilleur mouvement en utilisant minimax avec élagage alpha-bêta
+ * AMÉLIORÉE avec profondeur adaptative
  *
  * @param game Pointeur vers la structure de jeu
- * @param depth Profondeur maximale pour la recherche
+ * @param depth Profondeur maximale pour la recherche (peut être adaptée)
  * @return Meilleur mouvement trouvé
  */
 Move minimax_best_move(Game * game, int depth) {
+    // Utiliser la profondeur adaptative si depth == DEPTH
+    int actual_depth = (depth == DEPTH) ? adaptive_depth(game) : depth;
+    
+    printf("=== DEBUT MINIMAX avec profondeur %d (adaptatif: %s) ===\n", 
+           actual_depth, (actual_depth != depth) ? "OUI" : "NON");
+    clock_t start_time = clock();
+    
     Player current_player = ( (game->turn & 1) == 0) ? P1 : P2;
 
     Move possible_moves[10 * 16]; // 10 pawns with 16 moves each at best (oui le dernier ne peux que faire 15 mouvements au max mais hassoul)
     int size = all_possible_moves_ordered(game, possible_moves, current_player);
+    printf("Joueur %s, %d mouvements possibles\n", (current_player == P1) ? "P1" : "P2", size);
+    
     int best_score = -100001;
     Move best_move = {-1, -1, -1, -1, -10001};
 
     for (int i = 0; i < size; i++) {
+        printf("Evaluation mouvement %d/%d...\n", i+1, size);
         Game temp = *game;
 
         update_with_move(&temp, possible_moves[i]);
-        int current_score = minimax_alpha_beta(&temp, depth - 1, 0, -100000, 100000, current_player);
+        // For AI (P2), we want to maximize, for P1 we want to minimize
+        int maximizing_player = (current_player == P2) ? 1 : 0;
+        int current_score = minimax_alpha_beta(&temp, actual_depth - 1, !maximizing_player, -100000, 100000, current_player);
 
         if (current_score > best_score) {
             best_move = possible_moves[i];
@@ -424,7 +534,12 @@ Move minimax_best_move(Game * game, int depth) {
         }
     }
 
-    printf(" Best score: %d, Player 2: %d\n", best_score, (game->turn & 1) == 1);
+    clock_t end_time = clock();
+    double cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC;
+    
+    printf("=== FIN MINIMAX ===\n");
+    printf("Temps total: %.3f secondes\n", cpu_time_used);
+    printf("Best score: %d, Player 2: %d\n", best_score, (game->turn & 1) == 1);
     return best_move;
 }
 

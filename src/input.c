@@ -8,6 +8,7 @@
 #include "game.h"
 #include "display.h"
 #include "move_util.h"
+#include "const.h"
 #include "algo.h"
 
 // Structure pour gérer l'IA de façon asynchrone
@@ -74,7 +75,7 @@ void ai_network_move(Game *game) {
     // Calculer le meilleur coup pour l'IA
     Game copy = *game;
     copy.is_ai = 0; // Éviter la récursion
-    Move best_move = minimax_best_move(&copy, 3);  // Profondeur 3
+    Move best_move = minimax_best_move(&copy, DEPTH);  // Utilise la constante DEPTH
     
     if (best_move.src_row < 0 || best_move.src_col < 0) {
         printf("[AI] Aucun coup valide trouvé\n");
