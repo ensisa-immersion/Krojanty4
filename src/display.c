@@ -35,9 +35,7 @@ static gboolean check_ai_periodic(gpointer user_data) {
     if (game->is_ai && game->won == NOT_PLAYER) {
         int should_ai_play = 0;
         
-        if (game->game_mode == LOCAL && (current_player_turn(game) == P2)) {
-            should_ai_play = 1;
-        } else if (game->game_mode == SERVER && (current_player_turn(game) == P2)) {
+        if ((game->game_mode == LOCAL || game->game_mode == SERVER) && (current_player_turn(game) == P2)) {
             should_ai_play = 1;
         } else if (game->game_mode == CLIENT && (current_player_turn(game) == P1)) {
             should_ai_play = 1;
@@ -226,6 +224,21 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
 
     cairo_move_to(cr, text_x, text_y);
     cairo_show_text(cr, msg);
+
+    // Afficher le timer du tour
+    /* time_t now = time(NULL);
+    double elapsed = difftime(now, game->turn_timer);
+    char timer_text[64];
+    snprintf(timer_text, sizeof(timer_text), "Temps du tour : %.1f s", elapsed);
+
+    cairo_set_font_size(cr, 20.0);
+    cairo_set_source_rgb(cr, 0.2, 0.2, 0.2);
+    cairo_text_extents(cr, timer_text, &extents);
+    double timer_x = 128 + start_x + (grid_width - extents.width) / 2 - extents.x_bearing;
+    double timer_y = text_y - 20;
+
+    cairo_move_to(cr, timer_x, timer_y);
+    cairo_show_text(cr, timer_text); */
 
     // Afficher les coordonnées de la grille
     cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);

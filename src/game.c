@@ -244,9 +244,9 @@ void won(Game* game) {
 
         // Si le joueur 1 n'a plus que 2 pièces (roi + 1 soldat), joueur 2 gagne
         // Sinon le joueur 2 n'a plus que 2 pièces (roi + 1 soldat), joueur 1 gagne
-        if (p1_piece < 3) {
+        if (p1_piece <= 2) {
             game->won = P2;
-        } else if (p2_piece < 3) {
+        } else if (p2_piece <= 2) {
             game->won = P1;
         }
     }

@@ -1,5 +1,6 @@
 #ifndef GAME_H_INCLUDED
 #define GAME_H_INCLUDED
+#include <time.h>
 
 typedef enum {
     LOCAL = 0,
@@ -11,7 +12,6 @@ typedef enum {
     NOT_PLAYER = 0,
     P1,
     P2,
-    // AI, // AI player or a better check !, use rules (client is blue)
     DRAW // Or we can make a Winner enum ?
 } Player;
 
@@ -38,6 +38,7 @@ typedef struct {
     int turn;
     int selected_tile[2];
     int is_ai;
+    time_t turn_timer;
 
     GameMode game_mode;
     Piece board[9][9];
