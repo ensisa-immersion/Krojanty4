@@ -250,8 +250,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
             if (game->game_mode == SERVER && is_server_turn) {
                 printf("[INPUT] IA contrôle le serveur, input humain bloqué\n");
                 return;
-            }
-            if (game->game_mode == CLIENT && is_client_turn) {
+            } else if (game->game_mode == CLIENT && is_client_turn) {
                 printf("[INPUT] IA contrôle le client, input humain bloqué\n");
                 return;
             }
@@ -260,9 +259,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         if (game->game_mode == SERVER && !is_server_turn) {
             printf("[MOVE] REFUSÉ - Pas le tour du serveur (tour %d)\n", game->turn);
             return;
-        }
-        
-        if (game->game_mode == CLIENT && !is_client_turn) {
+        } else if (game->game_mode == CLIENT && !is_client_turn) {
             printf("[MOVE] REFUSÉ - Pas le tour du client (tour %d)\n", game->turn);
             return;
         }

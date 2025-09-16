@@ -44,10 +44,6 @@ int main(int argc, char *argv[]) {
         // Mode LOCAL (2 joueurs sur la même machine)
         printf("Démarrage en mode local%s...\n", ai_enabled ? " avec IA" : "");
         game = init_game(LOCAL, ai_enabled);
-        if (ai_enabled) {
-            check_ai_initial_move(&game);
-        }
-        return initialize_display(0, NULL, &game);
     }
     else if (argc >= 2 && strcmp(argv[1], "-s") == 0 && argc >= 3) {
         // Mode SERVEUR (host + player)
@@ -67,11 +63,6 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         pthread_detach(server_thread);
-
-        if (ai_enabled) {
-            check_ai_initial_move(&game);
-        }
-        return initialize_display(0, NULL, &game);
     }
     else if (argc >= 2 && strcmp(argv[1], "-c") == 0 && argc >= 3) {
         // Mode CLIENT
@@ -93,12 +84,13 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         start_client_rx(&game);
-
-        if (ai_enabled) {
-            check_ai_initial_move(&game);
-        }
-        return initialize_display(0, NULL, &game);
     }
+
+    if (ai_enabled) {
+        check_ai_initial_move(&game);
+    }
+
+    return initialize_display(0, NULL, &game);
 
     fprintf(stderr, "Usage: %s [-ia] -l | [-ia] -s <port> | [-ia] -c <ip:port>\n", argv[0]);
     return 1;
