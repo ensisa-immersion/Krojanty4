@@ -329,8 +329,6 @@ void draw_callback(GtkDrawingArea *area G_GNUC_UNUSED, cairo_t *cr, int width, i
                     symbol = "♔";
                 } else if (tile == P1_PAWN || tile == P2_PAWN) {
                     symbol = "♜";
-                } else {
-                    symbol = "⚑";
                 }
 
                 // Couleur de la pièce selon l'équipe
