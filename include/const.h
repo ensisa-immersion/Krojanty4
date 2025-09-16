@@ -10,7 +10,7 @@
 #define MAX_POSSIBLE_MOVES 64
 
 // Constantes de l'IA
-#define DEPTH 3
+#define DEPTH 2
 #define DEPTH_ENDGAME 3  // Profondeur plus élevée en fin de partie
 #define ENDGAME_PIECE_THRESHOLD 3  // Seuil pour considérer comme fin de partie
 

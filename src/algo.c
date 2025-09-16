@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
 
 #include "game.h"
 #include "algo.h"
@@ -122,11 +121,9 @@ UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
     }
     did_eat_ai(game, dst_row, dst_col, direction, &undo);
 
-    // win / turn
-    won(game);
-    if (game->won == NOT_PLAYER) {
-        game->turn++;
-    }
+    // won(game);
+
+    game->turn++;
 
     return undo;
 }
@@ -178,13 +175,12 @@ void update_with_move(Game * game, Move move) {
     }
 
     // Check win condition and advance turn
-    won(game);
+    // won(game);
     if (game->won == NOT_PLAYER) {
         game->turn++;
     }
 }
-
-
+ 
 /**
  * Fonction d'évaluation avancée de l'état du jeu pour un joueur donné.
  * Elle combine plusieurs facteurs stratégiques.
@@ -194,10 +190,15 @@ void update_with_move(Game * game, Move move) {
  * @return Score évalué
  */
 int utility(Game * game, Player player) {
+
+    Game temp = *game;
+    won(&temp);
+    Player winner = temp.won;
+
     // Vérification des conditions de victoire (priorité absolue)
-    if (game->won == P1) return (player == P1) ? 50000 : -50000;
-    if (game->won == P2) return (player == P2) ? 50000 : -50000;
-    if (game->won == DRAW) return 0;
+    if (winner == P1) return (player == P1) ? 50000 : -50000;
+    if (winner == P2) return (player == P2) ? 50000 : -50000;
+    if (winner == DRAW) return 0;
 
     int score_p1 = 0, score_p2 = 0;
     
@@ -437,7 +438,9 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
  * @return Score évalué
  */
 int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int beta, Player initial_player) {
-    if (depth == 0 || game->won != NOT_PLAYER) return utility(game, initial_player);
+    if (depth == 0 || game->won != NOT_PLAYER) {
+        return utility(game, initial_player);
+    }
     Player current_player = ( (game->turn & 1) == 1) ? P2 : P1;
 
     Move possible_moves[10 * 16]; // 10 pawns with 16 moves each at best (oui le dernier ne peux que faire 15 mouvements au max mais hassoul)
@@ -478,55 +481,25 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
 }
 
 /**
- * Calcule la profondeur adaptative selon l'état du jeu
- * @param game Pointeur vers la structure de jeu
- * @return Profondeur recommandée
- */
-int adaptive_depth(Game *game) {
-    int total_pieces = score_player_one(*game) + score_player_two(*game);
-    
-    // En fin de partie (peu de pièces), on peut se permettre plus de profondeur
-    if (total_pieces <= ENDGAME_PIECE_THRESHOLD) {
-        return DEPTH_ENDGAME;
-    }
-    
-    // En début/milieu de partie, profondeur normale
-    return DEPTH;
-}
-
-/**
  * Fonction principale pour obtenir le meilleur mouvement en utilisant minimax avec élagage alpha-bêta
- * AMÉLIORÉE avec profondeur adaptative
  *
  * @param game Pointeur vers la structure de jeu
- * @param depth Profondeur maximale pour la recherche (peut être adaptée)
+ * @param depth Profondeur maximale pour la recherche
  * @return Meilleur mouvement trouvé
  */
 Move minimax_best_move(Game * game, int depth) {
-    // Utiliser la profondeur adaptative si depth == DEPTH
-    int actual_depth = (depth == DEPTH) ? adaptive_depth(game) : depth;
-    
-    printf("=== DEBUT MINIMAX avec profondeur %d (adaptatif: %s) ===\n", 
-           actual_depth, (actual_depth != depth) ? "OUI" : "NON");
-    clock_t start_time = clock();
-    
     Player current_player = ( (game->turn & 1) == 0) ? P1 : P2;
 
     Move possible_moves[10 * 16]; // 10 pawns with 16 moves each at best (oui le dernier ne peux que faire 15 mouvements au max mais hassoul)
     int size = all_possible_moves_ordered(game, possible_moves, current_player);
-    printf("Joueur %s, %d mouvements possibles\n", (current_player == P1) ? "P1" : "P2", size);
-    
     int best_score = -100001;
     Move best_move = {-1, -1, -1, -1, -10001};
 
     for (int i = 0; i < size; i++) {
-        printf("Evaluation mouvement %d/%d...\n", i+1, size);
         Game temp = *game;
 
         update_with_move(&temp, possible_moves[i]);
-        // For AI (P2), we want to maximize, for P1 we want to minimize
-        int maximizing_player = (current_player == P2) ? 1 : 0;
-        int current_score = minimax_alpha_beta(&temp, actual_depth - 1, !maximizing_player, -100000, 100000, current_player);
+        int current_score = minimax_alpha_beta(&temp, depth, 1, -100000, 100000, current_player);
 
         if (current_score > best_score) {
             best_move = possible_moves[i];
@@ -534,12 +507,7 @@ Move minimax_best_move(Game * game, int depth) {
         }
     }
 
-    clock_t end_time = clock();
-    double cpu_time_used = ((double) (end_time - start_time)) / CLOCKS_PER_SEC;
-    
-    printf("=== FIN MINIMAX ===\n");
-    printf("Temps total: %.3f secondes\n", cpu_time_used);
-    printf("Best score: %d, Player 2: %d\n", best_score, (game->turn & 1) == 1);
+    printf(" Best score: %d, Player 2: %d\n", best_score, (game->turn & 1) == 1);
     return best_move;
 }
 
@@ -550,9 +518,7 @@ Move minimax_best_move(Game * game, int depth) {
  * @return void
  */
 void client_first_move(Game * game) {
-    printf("DEBUG first move\n");
-    fflush(stdout);
-    Move first_move = {0, 3, 0, 4, -1};
+    Move first_move = {2, 2, 4, 2, -1};
 
     game->selected_tile[0] = first_move.src_row;
     game->selected_tile[1] = first_move.src_col;
