@@ -19,7 +19,7 @@ static int tests_failed = 0;
     do { \
         if (condition) { \
             printf("[TEST][MOVE][OK] %s\n", message); \
-            LOG_INFO_MSG("[TEST][MOVE][OK] %s", message); \
+            LOG_SUCCESS_MSG("[TEST][MOVE][OK] %s", message); \
             tests_passed++; \
         } else { \
             printf("[TEST][MOVE][KO] %s\n", message); \
@@ -149,7 +149,7 @@ void test_coordinate_consistency() {
  * Fonction principale des tests
  */
 int main() {
-    if (logger_init("test.log", LOG_DEBUG) != 0) {
+    if (logger_init("./logs/test.log", LOG_DEBUG) != 0) {
         fprintf(stderr, "Impossible d'initialiser le logger\n");
         return 1;
     }

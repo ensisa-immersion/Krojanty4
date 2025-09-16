@@ -153,11 +153,11 @@ int logger_is_initialized(void) {
 static const char* log_level_to_string(log_level_t level) {
     switch (level) {
         case LOG_SUCCESS: return "SUCCESS";
-        case LOG_DEBUG: return "DEBUG  ";
-        case LOG_INFO:  return "INFO   ";
-        case LOG_WARN:  return "WARN   ";
-        case LOG_ERROR: return "ERROR  ";
-        default:        return "UNKN   ";
+        case LOG_DEBUG: return "DEBUG";
+        case LOG_INFO:  return "INFO";
+        case LOG_WARN:  return "WARN";
+        case LOG_ERROR: return "ERROR";
+        default:        return "UNKN";
     }
 }
 

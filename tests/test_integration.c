@@ -18,7 +18,7 @@ static int tests_failed = 0;
     do { \
         if (condition) { \
             printf("[TEST][INTEGRATION][OK] %s\n", message); \
-            LOG_INFO_MSG("[TEST][INTEGRATION][OK] %s", message); \
+            LOG_SUCCESS_MSG("[TEST][INTEGRATION][OK] %s", message); \
             tests_passed++; \
         } else { \
             printf("[TEST][INTEGRATION][KO] %s\n", message); \
@@ -213,7 +213,7 @@ void test_network_game_simulation() {
  * Fonction principale des tests
  */
 int main() {
-    if (logger_init("test.log", LOG_DEBUG) != 0) {
+    if (logger_init("./logs/test.log", LOG_DEBUG) != 0) {
         fprintf(stderr, "Impossible d'initialiser le logger\n");
         return 1;
     }
