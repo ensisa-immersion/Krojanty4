@@ -4,7 +4,9 @@
  */
 
 #include <stdio.h>
+
 #include "game.h"
+#include "logging.h"
 
 // Compteurs de tests
 static int tests_passed = 0;
@@ -15,9 +17,11 @@ static int tests_failed = 0;
     do { \
         if (condition) { \
             printf("[TEST][GAME][OK] %s\n", message); \
+            LOG_INFO_MSG("[TEST][GAME][OK] %s", message); \
             tests_passed++; \
         } else { \
             printf("[TEST][GAME][KO] %s\n", message); \
+            LOG_ERROR_MSG("[TEST][GAME][KO] %s", message); \
             tests_failed++; \
         } \
     } while(0)
@@ -76,7 +80,6 @@ void test_legal_moves() {
     TEST_ASSERT(is_move_legal(&game, 0, 3, 0, 5), "Mouvement horizontal valide");
 
     // Test mouvement vertical : (3,0) vers (4,0)
-    printf("Test: (3,0)=%d vers (4,0)=%d\n", game.board[3][0], game.board[4][0]);
     TEST_ASSERT(is_move_legal(&game, 3, 0, 4, 0), "Mouvement vertical valide");
 
     // Test mouvement diagonal invalide
@@ -161,6 +164,11 @@ void test_ai_mode() {
  * Fonction principale des tests
  */
 int main() {
+    if (logger_init("test.log", LOG_DEBUG) != 0) {
+        fprintf(stderr, "Impossible d'initialiser le logger\n");
+        return 1;
+    }
+
     test_game_initialization();
     test_scoring();
     test_get_player();
@@ -168,7 +176,13 @@ int main() {
     test_turn_rules();
     test_blocked_moves();
     test_game_modes();
-    //test_ai_mode();
+    test_ai_mode();
 
     printf("[TEST][GAME][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
+    LOG_INFO_MSG("[TEST][GAME][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
+
+    // Clean up
+    logger_cleanup();
 }
+
+

@@ -2,7 +2,6 @@
 #define DISPLAY_H_INCLUDED
 
 #include <gtk/gtk.h>
-
 #include "game.h"
 #include "const.h"
 

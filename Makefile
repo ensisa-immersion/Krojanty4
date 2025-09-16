@@ -18,8 +18,8 @@ SRC := $(wildcard $(SRC_DIR)/*.c) main.c
 BIN := $(BUILD_DIR)/game
 
 # Sources et objets de test (versions sans GTK)
-TEST_SOURCES := $(TEST_DIR)/game_test.c $(TEST_DIR)/move_util_test.c
-TEST_OBJECTS := $(BUILD_DIR)/game_test.o $(BUILD_DIR)/move_util_test.o
+TEST_SOURCES := $(TEST_DIR)/game_test.c $(TEST_DIR)/move_util_test.c $(SRC_DIR)/logging.c
+TEST_OBJECTS := $(BUILD_DIR)/game_test.o $(BUILD_DIR)/move_util_test.o $(BUILD_DIR)/logging_test.o
 
 # Tests exécutables
 TESTS := test_game test_move_util test_network test_integration
@@ -57,7 +57,13 @@ $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
 # Compilation des objets de test
-$(TEST_OBJECTS): $(BUILD_DIR)/%.o: $(TEST_DIR)/%.c
+$(BUILD_DIR)/game_test.o: $(TEST_DIR)/game_test.c
+	$(CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/move_util_test.o: $(TEST_DIR)/move_util_test.c
+	$(CC) $(TEST_CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/logging_test.o: $(SRC_DIR)/logging.c
 	$(CC) $(TEST_CFLAGS) -c $< -o $@
 
 $(TEST_EXECUTABLES): $(TEST_DIR)/%: $(TEST_DIR)/%.c $(TEST_OBJECTS)
@@ -67,7 +73,7 @@ $(TEST_EXECUTABLES): $(TEST_DIR)/%: $(TEST_DIR)/%.c $(TEST_OBJECTS)
 test-clean:
 	@echo "🧹 Nettoyage des tests..."
 	rm -f $(TEST_EXECUTABLES)
-	rm -f $(BUILD_DIR)/test_*.o
+	rm -f $(BUILD_DIR)/*.o
 
 # ========== DOCUMENTATION ==========
 docs:

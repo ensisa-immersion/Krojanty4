@@ -162,7 +162,7 @@ void undo_board_ai(Game *game, UndoInfo undo) {
 void update_with_move(Game * game, Move move) {
     game->selected_tile[0] = move.src_row;
     game->selected_tile[1] = move.src_col;
-    
+
     // Direct board update without using update_board_ai for simulations
     Piece moving_piece = game->board[move.src_row][move.src_col];
     game->board[move.dst_row][move.dst_col] = moving_piece;
@@ -175,7 +175,7 @@ void update_with_move(Game * game, Move move) {
     } else if (move.dst_col != move.src_col) {
         direction = (move.dst_col > move.src_col) ? DIR_RIGHT : DIR_LEFT;
     }
-    
+
     if (direction != NONE) {
         did_eat(game, move.dst_row, move.dst_col, direction);
     }

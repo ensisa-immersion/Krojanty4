@@ -1,7 +1,8 @@
-#include "move_util_test.h"
-#include "game.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "move_util_test.h"
+#include "game.h"
 
 /* Mappage des colonnes A-I */
 const char COLS_MAP[10] = "ABCDEFGHI";

@@ -13,7 +13,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <pthread.h>
+
 #include "game.h"
+#include "logging.h"
 
 // Compteurs de tests
 static int tests_passed = 0;
@@ -24,9 +26,11 @@ static int tests_failed = 0;
     do { \
         if (condition) { \
             printf("[TEST][NETWORK][OK] %s\n", message); \
+            LOG_INFO_MSG("[TEST][NETWORK][OK] %s", message); \
             tests_passed++; \
         } else { \
             printf("[TEST][NETWORK][KO] %s\n", message); \
+            LOG_ERROR_MSG("[TEST][NETWORK][KO] %s", message); \
             tests_failed++; \
         } \
     } while(0)
@@ -271,6 +275,11 @@ void test_network_robustness() {
  * Fonction principale des tests
  */
 int main() {
+    if (logger_init("test.log", LOG_DEBUG) != 0) {
+        fprintf(stderr, "Impossible d'initialiser le logger\n");
+        return 1;
+    }
+
     test_socket_creation();
     test_address_configuration();
     test_argument_parsing();
@@ -281,4 +290,8 @@ int main() {
     test_network_robustness();
 
     printf("[TEST][NETWORK][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
+    LOG_INFO_MSG("[TEST][NETWORK][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
+
+    // Clean up
+    logger_cleanup();
 }

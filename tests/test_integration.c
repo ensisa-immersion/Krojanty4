@@ -4,8 +4,10 @@
  */
 
 #include <stdio.h>
-#include "../include/game.h"
+
+#include "game.h"
 #include "move_util_test.h"
+#include "logging.h"
 
 // Compteurs de tests
 static int tests_passed = 0;
@@ -16,9 +18,11 @@ static int tests_failed = 0;
     do { \
         if (condition) { \
             printf("[TEST][INTEGRATION][OK] %s\n", message); \
+            LOG_INFO_MSG("[TEST][INTEGRATION][OK] %s", message); \
             tests_passed++; \
         } else { \
             printf("[TEST][INTEGRATION][KO] %s\n", message); \
+            LOG_ERROR_MSG("[TEST][INTEGRATION][KO] %s", message); \
             tests_failed++; \
         } \
     } while(0)
@@ -183,26 +187,20 @@ void test_network_game_simulation() {
     Game server_game = init_game(SERVER, 0);
     Game client_game = init_game(CLIENT, 0);
 
-    // Simuler l'échange de mouvements
-    // Simuler l'échange de mouvements avec un mouvement réellement légal
-    // Tour 0: Serveur joue (P1) - mouvement A9->D9 (ligne 0, colonnes 0->3)
     simulate_move(&server_game, 0, 0, 0, 3);
-    // Appliquer le même mouvement côté client
-    // Appliquer le même mouvement côté client SEULEMENT si le mouvement serveur a réussi
+
     if (server_game.turn == 1) {
         client_game.board[0][0] = P_NONE;
         client_game.board[0][3] = P1_PAWN;
         client_game.turn = 1;
     }
-    // Vérifier la synchronisation
+
     TEST_ASSERT(server_game.turn == client_game.turn, "Tours synchronisés");
     TEST_ASSERT(server_game.board[2][3] == client_game.board[2][3], "Plateaux synchronisés");
     TEST_ASSERT(server_game.board[0][3] == client_game.board[0][3], "Plateaux synchronisés");
-    // Tour 1: Client joue (P2)
-    // Tour 1: Client joue (P2) - mouvement légal pour P2
+
     simulate_move(&client_game, 6, 6, 5, 6);
-    // Appliquer le même mouvement côté serveur
-    // Appliquer le même mouvement côté serveur SEULEMENT si le mouvement client a réussi
+
     if (client_game.turn == 2) {
         server_game.board[6][6] = P_NONE;
         server_game.board[5][6] = P2_PAWN;
@@ -215,6 +213,11 @@ void test_network_game_simulation() {
  * Fonction principale des tests
  */
 int main() {
+    if (logger_init("test.log", LOG_DEBUG) != 0) {
+        fprintf(stderr, "Impossible d'initialiser le logger\n");
+        return 1;
+    }
+
     test_complete_game_scenario();
     test_move_util_integration();
     test_edge_cases();
@@ -223,4 +226,8 @@ int main() {
     test_network_game_simulation();
 
     printf("[TEST][INTEGRATION][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
+    LOG_INFO_MSG("[TEST][INTEGRATION][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
+
+    // Clean up
+    logger_cleanup();
 }

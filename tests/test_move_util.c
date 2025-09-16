@@ -5,8 +5,10 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "game.h"
 #include "move_util_test.h"
+#include "logging.h"
 
 // Compteurs de tests
 static int tests_passed = 0;
@@ -17,9 +19,11 @@ static int tests_failed = 0;
     do { \
         if (condition) { \
             printf("[TEST][MOVE][OK] %s\n", message); \
+            LOG_INFO_MSG("[TEST][MOVE][OK] %s", message); \
             tests_passed++; \
         } else { \
             printf("[TEST][MOVE][KO] %s\n", message); \
+            LOG_ERROR_MSG("[TEST][MOVE][KO] %s", message); \
             tests_failed++; \
         } \
     } while(0)
@@ -145,6 +149,11 @@ void test_coordinate_consistency() {
  * Fonction principale des tests
  */
 int main() {
+    if (logger_init("test.log", LOG_DEBUG) != 0) {
+        fprintf(stderr, "Impossible d'initialiser le logger\n");
+        return 1;
+    }
+
     test_col_from_letter();
     test_cols_map();
     test_move_conversion();
@@ -152,4 +161,8 @@ int main() {
     test_coordinate_consistency();
 
     printf("[TEST][MOVE][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
+    LOG_INFO_MSG("[TEST][MOVE][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
+
+    // Clean up
+    logger_cleanup();
 }
