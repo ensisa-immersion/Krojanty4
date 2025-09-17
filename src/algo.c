@@ -47,7 +47,7 @@ UtilWeights W = {
     .DRAW = 0,
     .KING_VALUE = 500,
     .KING_ENDGAME = 1000,
-    .KING_THREAT_LIGHT = -1000,
+    .KING_THREAT_LIGHT = -200,
     .KING_THREAT_CRITICAL = -10000,
     .PIECE_VALUE = 100,
     .MOBILITY = 50,
@@ -251,7 +251,7 @@ int util_pieces(Game* game, Player player) {
     int pieces_p1 = score_player_one(*game);
     int pieces_p2 = score_player_two(*game);
     
-    int piece_value = (pieces_p1 <= ENDGAME_PIECE_THRESHOLD || pieces_p2 <= ENDGAME_PIECE_THRESHOLD) ? 30 : 100;
+    int piece_value = (pieces_p1 <= ENDGAME_PIECE_THRESHOLD || pieces_p2 <= ENDGAME_PIECE_THRESHOLD) ? (W.PIECE_VALUE / 3) : W.PIECE_VALUE;
 
     int score_p1 = pieces_p1 * piece_value;
     int score_p2 = pieces_p2 * piece_value;
@@ -265,7 +265,7 @@ int util_mobility(Game* game, Player player) {
     int mobility_p1 = all_possible_moves(game, moves, P1);
     int mobility_p2 = all_possible_moves(game, moves, P2);
 
-    return (player == P1) ? (mobility_p1 - mobility_p2) * 50 : (mobility_p2 - mobility_p1) * 50;
+    return (player == P1) ? (mobility_p1 - mobility_p2) * W.MOBILITY : (mobility_p2 - mobility_p1) * W.MOBILITY;
 }
 
 // CONTRÔLE DU CENTRE : Occuper le centre est avantageux
@@ -275,8 +275,8 @@ int util_center(Game* game, Player player) {
     for (int i = 3; i <= 5; i++) {
         for (int j = 3; j <= 5; j++) {
                 Player piece_owner = get_player(game->board[i][j]);
-                if (piece_owner == P1) score_p1 += 125;
-                if (piece_owner == P2) score_p2 += 125;
+                if (piece_owner == P1) score_p1 += W.CENTER;
+                if (piece_owner == P2) score_p2 += W.CENTER;
         }
     }
     return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
@@ -374,31 +374,31 @@ int util_kings(Game* game, Player player) {
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
             if (game->board[i][j] == P1_KING) {
-                score_p1 += 1000; // Valeur intrinsèque élevée du roi
+                score_p1 += W.KING_VALUE; // Valeur intrinsèque élevée du roi
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P1 && piece_p1 <= ENDGAME_PIECE_THRESHOLD && ((i == 0) || (j == 0))) {
-                    score_p1 += 500;
+                    score_p1 += W.KING_ENDGAME;
 
                 }
                 if (threats_p1 == 1) {
-                    score_p1 -= 1000;
+                    score_p1 += W.KING_THREAT_LIGHT;
                 } else if (threats_p1 >= 2) {
-                    score_p1 -= 2000;
+                    score_p1 += W.KING_THREAT_CRITICAL;
                 }
             }
             if (game->board[i][j] == P2_KING) {
-                score_p2 += 1000; // Valeur intrinsèque élevée du roi
+                score_p2 += W.KING_VALUE; // Valeur intrinsèque élevée du roi
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P2 && piece_p2 <= ENDGAME_PIECE_THRESHOLD && ((i == 8) || (j == 8))) {
-                    score_p2 += 500;
+                    score_p2 += W.KING_ENDGAME;
 
                 }
                 if (threats_p2 == 1) {
-                    score_p2 -= 1000;
+                    score_p2 += W.KING_THREAT_LIGHT;
                 } else if (threats_p2 >= 2) {
-                    score_p2 -= 2000;
+                    score_p2 += W.KING_THREAT_CRITICAL;
                 }
             }
         }
@@ -430,8 +430,8 @@ int util_tactics(Game* game, Player player) {
                     }
                 }
                 // Bonus proportionnel au nombre d'alliés adjacents
-                if (piece == P1) score_p1 += allies_nearby * 50;
-                if (piece == P2) score_p2 += allies_nearby * 50;
+                if (piece == P1) score_p1 += allies_nearby * W.TACTICS;
+                if (piece == P2) score_p2 += allies_nearby * W.TACTICS;
             }
         }
     }
@@ -462,11 +462,11 @@ int util_threats(Game* game, Player player) {
                     }
                 }
                 // Malus plus sévère si le roi est menacé
-                if (piece == P1 && game->board[i][j] == P1_KING) score_p1 -= threats * 500; 
-                else if (piece == P1) score_p1 -= threats * 50;
+                // if (piece == P1 && game->board[i][j] == P1_KING) score_p1 += threats * W.KING_THREAT_LIGHT; 
+                if (piece == P1) score_p1 += threats * W.THREATS;
 
-                if (piece == P2 && game->board[i][j] == P2_KING) score_p2 -= threats * 500;
-                else if (piece == P2) score_p2 -= threats * 50;
+                // if (piece == P2 && game->board[i][j] == P2_KING) score_p2 += threats * W.KING_THREAT_LIGHT;
+                if (piece == P2) score_p2 += threats * W.THREATS;
             }
         }
     }
@@ -521,36 +521,30 @@ int utility(Game * game, Player player) {
     }
 
     // Initialisation des scores pour chaque joueur
-    // int score_p1 = 0, score_p2 = 0;
     int score = 0;
+
+    // score += util_forward(game, player);
+
+    score += util_kings(game, player);
+    score += util_forward(game, player);
+    score += util_threats(game, player);
+    score += util_mobility(game, player); 
+    score += util_pieces(game, player); 
+    score += util_center(game, player);
+    score += util_tactics(game, player);
 
     // Vérification si un roi est en danger immédiat
     int threat_p1 = king_threats(game, P1);
     int threat_p2 = king_threats(game, P2);
-    if (threat_p1 >= 2) return (player == P1) ? W.KING_THREAT_CRITICAL : W.KING_VALUE;
-    if (threat_p2 >= 2) return (player == P2) ? W.KING_THREAT_CRITICAL : W.KING_VALUE;
 
-    // score += util_forward(game, player);
-
-    if (piece_p1 <= ENDGAME_PIECE_THRESHOLD || piece_p2 <= ENDGAME_PIECE_THRESHOLD) {
-        score += util_kings(game, player) * 10;
-        score += util_threats(game, player) * 6;
-        score += util_mobility(game, player) * 2; 
-        score += util_pieces(game, player) * 2; 
-        score += util_center(game, player) * 1;
-        score += util_tactics(game, player) * 1;
+    if (player == P1) {
+        score -= (threat_p1 >= 2) ? W.KING_THREAT_CRITICAL : 0;
+        score += (threat_p2 >= 2) ? W.KING_THREAT_CRITICAL : 0;
     } else {
-        score += util_center(game, player) * 1;
-        score += util_kings(game, player) * 5;
-        score += util_pieces(game, player) * 2;
-        score += util_mobility(game, player) * 3;
-        score += util_tactics(game, player) * 2;
-        score += util_threats(game, player) * 4;
+        score -= (threat_p2 >= 2) ? W.KING_THREAT_CRITICAL : 0;
+        score += (threat_p1 >= 2) ? W.KING_THREAT_CRITICAL : 0;
     }
-
-    // Pénalités supplémentaires si le roi est menacé
-    if (player == P1 && threat_p1 == 1) score += W.KING_THREAT_LIGHT;
-    if (player == P2 && threat_p2 == 1) score += W.KING_THREAT_LIGHT;
+ 
 
     // Calcul du score final relatif au joueur évalué
     // int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
@@ -647,6 +641,7 @@ int compare_moves_desc(const void *a, const void *b) {
  * @param player Joueur pour lequel générer les mouvements (P1 ou P2)
  * @return int Nombre de mouvements générés et triés
  */
+
 int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
     ScoredMove scored_moves[10*16]; // Tableau des mouvements avec scores
     int size = 0; // Compteur de mouvements générés
@@ -655,8 +650,8 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
     int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
 
     // Parcours de toutes les cases du plateau
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
             // Vérification si la case contient une pièce du joueur
             if (get_player(game->board[i][j]) != player) continue;
 
@@ -669,29 +664,40 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
                     int nj = j + k * dirs[d][1];
 
                     // Arrêt si hors du plateau
-                    if (ni < 0 || ni >= 9 || nj < 0 || nj >= 9) break;
+                    if (ni < 0 || ni >= GRID_SIZE || nj < 0 || nj >= GRID_SIZE) break;
 
                     // Arrêt si la case n'est pas vide
                     if (get_player(game->board[ni][nj]) != NOT_PLAYER) break;
 
                     // Création et évaluation du mouvement
                     Move move = {i, j, ni, nj, -1};
+
+                    game->selected_tile[0] = i;
+                    game->selected_tile[1] = j;
+                    UndoInfo undo_info = update_board_ai(game, ni, nj); // Appliquer le mouvement
+
+                    /*
                     Game temp = *game;
-                    
                     // Simulation rapide du mouvement
                     temp.board[ni][nj] = temp.board[i][j];
-                    temp.board[i][j] = (get_player(temp.board[i][j]) == P1) ? P1_VISITED : P2_VISITED;
+                    // temp.board[i][j] = (get_player(temp.board[i][j]) == P1) ? P1_VISITED : P2_VISITED;
+                    temp.board[i][j] = P_NONE;
+                    */
 
                     // Évaluation simple basée sur le score des joueurs
                     // int score = score_player_two(temp) - score_player_one(temp);
-                    int score = utility(&temp, player);
+                    int score = utility(game, player);
 
-                    // Ajout du mouvement au tableau si il y a de la place
-                    if (size < 10*16) {
-                        scored_moves[size].s_move = move;
-                        scored_moves[size].score = score;
-                        size++;
+                    if (undo_info.eaten_count > 0) {
+                        score += undo_info.eaten_count * 500; // grosse récompense pour capture
                     }
+
+                    // Ajout du mouvement au tableau
+                    scored_moves[size].s_move = move;
+                    scored_moves[size].score = score;
+                    size++;
+
+                    undo_board_ai(game, undo_info); // Annuler le mouvement
 
                     k++; // Passage à la distance suivante
                 }
@@ -708,8 +714,7 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
     }
 
     return size;
-}
-
+} 
 
 /**
  * @brief Algorithme minimax avec élagage alpha-bêta
@@ -738,7 +743,7 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
 
     // Génération de tous les mouvements possibles pour le joueur actuel
     Move possible_moves[10 * 16]; // Maximum théorique : 10 pièces × 16 mouvements chacune
-    int size = all_possible_moves(game, possible_moves, current_player);
+    int size = all_possible_moves_ordered(game, possible_moves, current_player);
 
     if (maximizing) {
         int best_score = -100001; // Initialisation à -∞
@@ -753,15 +758,15 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
             UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
             // Évaluation récursive du mouvement
-            int current_score = minimax_alpha_beta(game, depth - 1, !maximizing, alpha, beta, initial_player);
+            int current_score = minimax_alpha_beta(game, depth - 1, 0, alpha, beta, initial_player);
             undo_board_ai(game, undo_info);
 
             // Mise à jour du meilleur score et élagage alpha-bêta
-            best_score = (current_score >= best_score) ? current_score : best_score;
-            alpha = (alpha > best_score) ? alpha : best_score;
-            if (beta <= alpha) {
-                break;
-            }
+            // best_score = (current_score >= best_score) ? current_score : best_score;
+            // alpha = (alpha > best_score) ? alpha : best_score;
+            if (current_score > best_score) best_score = current_score;
+            if (current_score > alpha) alpha = current_score;
+            if (beta <= alpha) break; // Élagage
         }
         return best_score;
 
@@ -778,15 +783,15 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
             UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
             // Évaluation récursive du mouvement
-            int current_score = minimax_alpha_beta(game, depth - 1, !maximizing, alpha, beta, initial_player);
+            int current_score = minimax_alpha_beta(game, depth - 1, 1, alpha, beta, initial_player);
             undo_board_ai(game, undo_info);
 
             // Mise à jour du meilleur score et élagage alpha-bêta
-            best_score = (current_score <= best_score) ? current_score : best_score;
-            beta = (beta < best_score) ? beta : best_score;
-            if (beta <= alpha) {
-                break; // Élagage : pas besoin d'explorer plus
-            }
+            // best_score = (current_score <= best_score) ? current_score : best_score;
+            // beta = (beta < best_score) ? beta : best_score;
+            if (current_score < best_score) best_score = current_score;
+            if (current_score < beta) beta = current_score;
+            if (beta <= alpha) break; // Élagage
         }
         return best_score;
     }
@@ -803,7 +808,7 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
  * @param depth Profondeur maximale de recherche dans l'arbre de jeu
  * @return Move Le meilleur mouvement trouvé par l'algorithme
  */
-Move minimax_best_move(Game * game, int depth) {
+Move minimax_best_move(Game* game, int depth) {
     // Détermination du joueur actuel
     Player current_player = ( (game->turn & 1) == 0) ? P1 : P2;
 
@@ -877,8 +882,11 @@ void ai_next_move(Game* game) {
     // Calcul du meilleur mouvement avec la profondeur configurée
     Move best_move = minimax_best_move(&copy, DEPTH);
 
-    // Application du mouvement choisi au jeu réel
-    game->selected_tile[0] = best_move.src_row;
-    game->selected_tile[1] = best_move.src_col;
-    update_board(game, best_move.dst_row, best_move.dst_col);
+    if (best_move.src_row != -1 && best_move.src_col != -1 && best_move.dst_row != -1 && best_move.dst_col != -1) {
+        // Application du mouvement choisi au jeu réel
+        game->selected_tile[0] = best_move.src_row;
+        game->selected_tile[1] = best_move.src_col;
+        update_board(game, best_move.dst_row, best_move.dst_col);
+    }
+    
 }
