@@ -41,6 +41,9 @@ Commands:
   Tests:
   tests          Compile and run all tests
   test-clean     Clean test files
+
+  Logs:
+  logs-clean	Remove log files
 endef
 export HELP_BODY
 
@@ -93,3 +96,7 @@ clean-all: clean test-clean docs-clean
 
 help:
 	@echo "$$HELP_BODY"
+
+# ========== LOGS ==========
+logs-clean:
+	rm -f logs/*.log

@@ -26,6 +26,8 @@
 #include "input.h"
 #include "netutil.h"
 #include "move_util.h"
+#include "logging.h"
+#include "../include/logging.h"
 
 /** @brief Socket global de connexion au serveur */
 int g_client_socket = -1;
@@ -66,7 +68,7 @@ int connect_to_server(const char *ip, int port) {
     
     // Sauvegarde du socket global et confirmation de connexion
     g_client_socket = s;
-    printf("[CLIENT] Connecté à %s:%d\n", ip, port);
+    LOG_SUCCESS_MSG("[CLIENT] Connecté à %s:%d", ip, port);
     return s;
 }
 
@@ -98,7 +100,7 @@ void send_message(int client_socket, const char *move4) {
     if (send_all(client_socket, move4, 4) == -1) {
         perror("[CLIENT] send_all");
     } else {
-        printf("[CLIENT] Envoyé: %.4s\n", move4);
+        LOG_INFO_MSG("[CLIENT] Envoyé: %.4s", move4);
     }
 }
 
@@ -141,15 +143,15 @@ static void *client_rx_thread(void *arg) {
         
         if (r == 1) {
             // Mouvement reçu avec succès
-            printf("[CLIENT] Reçu coup serveur: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
+            LOG_INFO_MSG("[CLIENT] Reçu coup serveur: %c%c%c%c", m[0], m[1], m[2], m[3]);
 
             // Application du coup reçu du serveur (P2 = Rouge = tours impairs)
-            printf("[CLIENT] Application coup serveur (P2/Rouge) sur interface client\n");
+            LOG_INFO_MSG("[CLIENT] Application coup serveur (P2/Rouge) sur interface client");
             post_move_to_gtk(game, m);
 
         } else if (r == 0) {
             // Serveur fermé proprement
-            printf("[CLIENT] Serveur fermé proprement.\n");
+            LOG_SUCCESS_MSG("[CLIENT] Serveur fermé proprement.");
             break;
         } else {
             // Erreur de réception

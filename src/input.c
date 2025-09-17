@@ -26,6 +26,7 @@
 #include "move_util.h"
 #include "const.h"
 #include "algo.h"
+#include "logging.h"
 
 /**
  * @struct AITask
@@ -107,7 +108,7 @@ void ai_network_move(Game *game) {
     const char* mode_name = (game->game_mode == SERVER) ? "SERVER" : "CLIENT";
     const char* player_name = (game->game_mode == SERVER) ? "P2 (Rouge)" : "P1 (Bleu)";
     
-    printf("[AI] IA %s (%s) calcule son prochain coup...\n", mode_name, player_name);
+    LOG_INFO_MSG("[AI] IA %s (%s) calcule son prochain coup...", mode_name, player_name);
     
     // Calcul du meilleur mouvement avec l'algorithme minimax
     Game copy = *game;
@@ -116,7 +117,7 @@ void ai_network_move(Game *game) {
     
     // Validation du mouvement calculé
     if (best_move.src_row < 0 || best_move.src_col < 0) {
-        printf("[AI] Aucun coup valide trouvé\n");
+        LOG_INFO_MSG("[AI] Aucun coup valide trouvé");
         return;
     }
     
@@ -128,15 +129,14 @@ void ai_network_move(Game *game) {
     move[3] = (char)('9' - best_move.dst_row);
     move[4] = '\0';
     
-    printf("[AI] IA %s joue: %s (de %c%c à %c%c)\n", 
-           mode_name, move, move[0], move[1], move[2], move[3]);
+    LOG_INFO_MSG("[AI] IA %s joue: %s (de %c%c à %c%c)", mode_name, move, move[0], move[1], move[2], move[3]);
     
     // Envoi du mouvement au joueur distant AVANT application locale
     if (game->game_mode == SERVER && g_server_client_socket >= 0) {
-        printf("[AI] Envoi du mouvement au client...\n");
+        LOG_INFO_MSG("[AI] Envoi du mouvement au client...");
         send_message_to_client(g_server_client_socket, move);
     } else if (game->game_mode == CLIENT && g_client_socket >= 0) {
-        printf("[AI] Envoi du mouvement au serveur...\n");
+        LOG_INFO_MSG("[AI] Envoi du mouvement au serveur...");
         send_message(g_client_socket, move);
     }
     
@@ -173,11 +173,11 @@ void check_ai_initial_move(Game *game) {
     if (game->turn == 0 && game->game_mode == CLIENT) {
         // Mode client: IA joue P1 (Bleu) et commence en premier
         should_start = 1;
-        printf("[AI] IA client (P1/Bleu) commence la partie\n");
+        LOG_INFO_MSG("[AI] IA client (P1/Bleu) commence la partie");
     } else if (game->turn == 0 && game->game_mode == LOCAL) {
         // Mode local: joueur humain commence, IA attendra son tour
         should_start = 0;
-        printf("[AI] Mode local: humain commence, IA attendra son tour\n");
+        LOG_INFO_MSG("[AI] Mode local: humain commence, IA attendra son tour");
     }
     
     // Exécution du premier mouvement si nécessaire
@@ -221,7 +221,7 @@ void check_ai_turn(Game *game) {
     
     // Programmation de l'exécution asynchrone de l'IA
     if (is_ai_turn) {
-        printf("[AI] C'est le tour de l'IA (tour %d, mode %s)\n", 
+        LOG_INFO_MSG("[AI] C'est le tour de l'IA (tour %d, mode %s)",
                game->turn, 
                game->game_mode == LOCAL ? "LOCAL" : 
                game->game_mode == SERVER ? "SERVER" : "CLIENT");
@@ -254,19 +254,19 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
     // Validation des coordonnées d'entrée
     if (src_r < 0 || src_r >= GRID_SIZE || src_c < 0 || src_c >= GRID_SIZE ||
         dst_r < 0 || dst_r >= GRID_SIZE || dst_c < 0 || dst_c >= GRID_SIZE) {
-        printf("[INPUT] Coordonnées invalides: src(%d,%d) dst(%d,%d)\n", src_r, src_c, dst_r, dst_c);
+        LOG_INFO_MSG("[INPUT] Coordonnées invalides: src(%d,%d) dst(%d,%d)", src_r, src_c, dst_r, dst_c);
         return;
     }
     
     // Vérification de la présence d'une pièce à la source
     if (game->board[src_r][src_c] == P_NONE) {
-        printf("[INPUT] Aucune pièce à la source (%d,%d)\n", src_r, src_c);
+        LOG_INFO_MSG("[INPUT] Aucune pièce à la source (%d,%d)", src_r, src_c);
         return;
     }
     
     // Validation de la légalité du mouvement selon les règles du jeu
     if (!is_move_legal(game, src_r, src_c, dst_r, dst_c)) {
-        printf("[INPUT] Mouvement invalide de (%d,%d) vers (%d,%d)\n", src_r, src_c, dst_r, dst_c);
+        LOG_INFO_MSG("[INPUT] Mouvement invalide de (%d,%d) vers (%d,%d)", src_r, src_c, dst_r, dst_c);
         return;
     }
 
@@ -282,7 +282,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
     if (game->game_mode == LOCAL) {
         // Mode local: vérification du contrôle par l'IA
         if (game->is_ai && (current_player_turn(game) == P2)) {
-            printf("[INPUT] IA contrôle le joueur 2, input humain bloqué\n");
+            LOG_INFO_MSG("[INPUT] IA contrôle le joueur 2, input humain bloqué");
             return;
         }
         // Application directe du mouvement en mode local
@@ -292,7 +292,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         display_request_redraw();
     } else {
         // Mode réseau: validation des tours et permissions
-        printf("[MOVE] Tentative coup: %s (Tour %d)\n", move, game->turn);
+        LOG_INFO_MSG("[MOVE] Tentative coup: %s (Tour %d)", move, game->turn);
 
         // Détermination du joueur actuel
         int is_server_turn = (current_player_turn(game) == P2);  // Tours impairs = serveur (rouge)
@@ -301,27 +301,27 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
         // Blocage de l'input humain si l'IA contrôle ce joueur
         if (game->is_ai) {
             if (game->game_mode == SERVER && is_server_turn) {
-                printf("[INPUT] IA contrôle le serveur, input humain bloqué\n");
+                LOG_INFO_MSG("[INPUT] IA contrôle le serveur, input humain bloqué");
                 return;
             } else if (game->game_mode == CLIENT && is_client_turn) {
-                printf("[INPUT] IA contrôle le client, input humain bloqué\n");
+                LOG_INFO_MSG("[INPUT] IA contrôle le client, input humain bloqué");
                 return;
             }
         }
         
         // Validation du tour selon le mode de jeu
         if (game->game_mode == SERVER && !is_server_turn) {
-            printf("[MOVE] REFUSÉ - Pas le tour du serveur (tour %d)\n", game->turn);
+            LOG_INFO_MSG("[MOVE] REFUSÉ - Pas le tour du serveur (tour %d)", game->turn);
             return;
         } else if (game->game_mode == CLIENT && !is_client_turn) {
-            printf("[MOVE] REFUSÉ - Pas le tour du client (tour %d)\n", game->turn);
+            LOG_INFO_MSG("[MOVE] REFUSÉ - Pas le tour du client (tour %d)", game->turn);
             return;
         }
 
         // Traitement des mouvements selon le rôle réseau
         if (game->game_mode == CLIENT && g_client_socket >= 0 && is_client_turn) {
             // Client: application locale puis envoi au serveur
-            printf("[MOVE] CLIENT joue son tour %d\n", game->turn);
+            LOG_INFO_MSG("[MOVE] CLIENT joue son tour %d", game->turn);
             game->selected_tile[0] = src_r;
             game->selected_tile[1] = src_c;
             update_board(game, dst_r, dst_c);
@@ -332,7 +332,7 @@ void on_user_move_decided(Game *game, int src_r, int src_c, int dst_r, int dst_c
 
         } else if (game->game_mode == SERVER && g_server_client_socket >= 0 && is_server_turn) {
             // Serveur: application locale puis envoi au client
-            printf("[MOVE] SERVEUR joue son tour %d\n", game->turn);
+            LOG_INFO_MSG("[MOVE] SERVEUR joue son tour %d", game->turn);
             game->selected_tile[0] = src_r;
             game->selected_tile[1] = src_c;
             update_board(game, dst_r, dst_c);

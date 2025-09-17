@@ -27,6 +27,7 @@
 #include "netutil.h"
 #include "move_util.h"
 #include "input.h"
+#include "logging.h"
 
 /** @brief Socket global du client connecté (pour que le serveur puisse lui envoyer ses coups) */
 int g_server_client_socket = -1;
@@ -59,7 +60,7 @@ void send_message_to_client(int server_socket, const char *move4) {
     if (send_all(server_socket, move4, 4) == -1) {
         perror("[SERVER] send_all au client");
     } else {
-        printf("[SERVER] Envoyé au client: %.4s\n", move4);
+        LOG_INFO_MSG("[SERVER] Envoyé au client: %.4s", move4);
     }
 }
 
@@ -105,11 +106,11 @@ static void *server_client_rx(void *arg) {
         
         if (r == 1) {
             // Mouvement reçu avec succès
-            printf("[SERVER] Reçu coup client: %c%c%c%c\n", m[0], m[1], m[2], m[3]);
+            LOG_INFO_MSG("[SERVER] Reçu coup client: %c%c%c%c", m[0], m[1], m[2], m[3]);
 
             // Application locale du coup reçu (P1 = Bleu = tours pairs) si mode serveur-host
             if (game) {
-                printf("[SERVER] Application coup client (P1/Bleu) sur interface serveur\n");
+                LOG_INFO_MSG("[SERVER] Application coup client (P1/Bleu) sur interface serveur");
                 post_move_to_gtk(game, m);
             }
 
@@ -122,7 +123,7 @@ static void *server_client_rx(void *arg) {
 
         } else if (r == 0) {
             // Client fermé proprement
-            printf("[SERVER] Client fermé.\n");
+            LOG_INFO_MSG("[SERVER] Client fermé.");
             break;
         } else {
             // Erreur de réception
@@ -175,7 +176,7 @@ static int create_listen_socket(int port) {
         perror("listen"); close(s); return -1;
     }
     
-    printf("[SERVER] Écoute sur 0.0.0.0:%d\n", port);
+    LOG_INFO_MSG("[SERVER] Écoute sur 0.0.0.0:%d", port);
     return s;
 }
 
@@ -201,16 +202,16 @@ int run_server_1v1(Game *game, int port) {
     socklen_t clen = sizeof(cli);
 
     // Acceptation de la première connexion (Client A)
-    printf("[SERVER] En attente du Client A…\n");
+    LOG_INFO_MSG("[SERVER] En attente du Client A…");
     int a = accept(ls, (struct sockaddr*)&cli, &clen);
     if (a < 0) { perror("accept A"); close(ls); return -1; }
-    printf("[SERVER] Client A connecté.\n");
+    LOG_INFO_MSG("[SERVER] Client A connecté.");
 
     // Acceptation de la seconde connexion (Client B)
-    printf("[SERVER] En attente du Client B…\n");
+    LOG_INFO_MSG("[SERVER] En attente du Client B…");
     int b = accept(ls, (struct sockaddr*)&cli, &clen);
     if (b < 0) { perror("accept B"); close(a); close(ls); return -1; }
-    printf("[SERVER] Client B connecté.\n");
+    LOG_INFO_MSG("[SERVER] Client B connecté.");
 
     // Création et lancement du thread de réception pour le Client A (relais vers B)
     pthread_t thA, thB;
@@ -236,7 +237,7 @@ int run_server_1v1(Game *game, int port) {
 
     // Fermeture du socket d'écoute (plus besoin d'accepter de nouvelles connexions)
     close(ls);
-    printf("[SERVER] Match lancé. RX threads actifs.\n");
+    LOG_INFO_MSG("[SERVER] Match lancé. RX threads actifs.");
     return 0;
 }
 
@@ -262,10 +263,10 @@ int run_server_host(Game *game, int port) {
     socklen_t clen = sizeof(cli);
 
     // Acceptation d'une seule connexion cliente
-    printf("[SERVER] En attente d'un client…\n");
+    LOG_INFO_MSG("[SERVER] En attente d'un client…");
     int client_sock = accept(ls, (struct sockaddr*)&cli, &clen);
     if (client_sock < 0) { perror("accept client"); close(ls); return -1; }
-    printf("[SERVER] Client connecté. Vous pouvez jouer!\n");
+    LOG_INFO_MSG("[SERVER] Client connecté. Vous pouvez jouer!");
 
     // Sauvegarde du socket client dans la variable globale pour envoi des coups
     g_server_client_socket = client_sock;
@@ -287,7 +288,7 @@ int run_server_host(Game *game, int port) {
 
     // Fermeture du socket d'écoute (plus besoin d'accepter de nouvelles connexions)
     close(ls);
-    printf("[SERVER] Match lancé. Thread RX client actif.\n");
+    LOG_INFO_MSG("[SERVER] Match lancé. Thread RX client actif.");
     return 0;
 }
 

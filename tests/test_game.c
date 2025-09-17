@@ -16,11 +16,9 @@ static int tests_failed = 0;
 #define TEST_ASSERT(condition, message) \
     do { \
         if (condition) { \
-            printf("[TEST][GAME][OK] %s\n", message); \
             LOG_SUCCESS_MSG("[TEST][GAME][OK] %s", message); \
             tests_passed++; \
         } else { \
-            printf("[TEST][GAME][KO] %s\n", message); \
             LOG_ERROR_MSG("[TEST][GAME][KO] %s", message); \
             tests_failed++; \
         } \
@@ -178,11 +176,7 @@ int main() {
     test_game_modes();
     test_ai_mode();
 
-    printf("[TEST][GAME][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
     LOG_INFO_MSG("[TEST][GAME][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
-
-    // Clean up
-    logger_cleanup();
 }
 
 

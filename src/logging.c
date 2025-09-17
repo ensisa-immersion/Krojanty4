@@ -163,9 +163,11 @@ int logger_log(log_level_t level, const char* format, ...) {
         message[MAX_LOG_MESSAGE_LEN - 1] = '\0';
     }
 
+    // Affichage console pour debug immédiat
+    printf("%s\n", message);
+
     // Écriture de l'entrée complète dans le fichier de log
-    int result = fprintf(g_logger.file, "[%s] [%s] %s\n", 
-                        timestamp, log_level_to_string(level), message);
+    int result = fprintf(g_logger.file, "[%s] [%s] %s\n", timestamp, log_level_to_string(level), message);
     
     // Gestion d'erreur d'écriture dans le fichier
     if (result < 0) {

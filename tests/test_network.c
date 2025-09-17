@@ -25,11 +25,9 @@ static int tests_failed = 0;
 #define TEST_ASSERT(condition, message) \
     do { \
         if (condition) { \
-            printf("[TEST][NETWORK][OK] %s\n", message); \
             LOG_SUCCESS_MSG("[TEST][NETWORK][OK] %s", message); \
             tests_passed++; \
         } else { \
-            printf("[TEST][NETWORK][KO] %s\n", message); \
             LOG_ERROR_MSG("[TEST][NETWORK][KO] %s", message); \
             tests_failed++; \
         } \
@@ -289,9 +287,5 @@ int main() {
     test_message_format();
     test_network_robustness();
 
-    printf("[TEST][NETWORK][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
     LOG_INFO_MSG("[TEST][NETWORK][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
-
-    // Clean up
-    logger_cleanup();
 }

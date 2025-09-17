@@ -17,6 +17,7 @@
 #include "game.h"
 #include "algo.h"
 #include "const.h"
+#include "logging.h"
 
 /**
  * @struct UndoInfo
@@ -652,7 +653,7 @@ Move minimax_best_move(Game * game, int depth) {
     }
 
     // Affichage du résultat pour le débogage
-    printf(" Best score: %d, Player 2: %d\n", best_score, (game->turn & 1) == 1);
+    LOG_INFO_MSG("[IA] Best score: %d, Player 2: %d", best_score, (game->turn & 1) == 1);
     return best_move;
 }
 

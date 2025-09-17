@@ -20,6 +20,7 @@
 #include "game.h"
 #include "input.h"
 #include "const.h"
+#include "logging.h"
 
 /** @brief Référence globale du DrawingArea principal (pour redraw thread-safe) */
 static GtkWidget *g_main_drawing_area = NULL;
@@ -81,7 +82,7 @@ static gboolean check_ai_periodic(gpointer user_data) {
             static int last_ai_turn = -1;
             if (game->turn != last_ai_turn) {
                 last_ai_turn = game->turn;
-                printf("[AI] Timer: C'est le tour de l'IA (tour %d)\n", game->turn);
+                LOG_INFO_MSG("[AI] Timer: C'est le tour de l'IA (tour %d)", game->turn);
                 check_ai_turn(game);
             }
         }
@@ -104,7 +105,7 @@ static gboolean force_redraw_callback(gpointer data) {
     (void)data;
     if (g_main_drawing_area) {
         gtk_widget_queue_draw(g_main_drawing_area);
-        printf("[DISPLAY] Redraw forcé depuis le thread principal\n");
+        LOG_INFO_MSG("[DISPLAY] Redraw forcé depuis le thread principal");
     }
     return G_SOURCE_REMOVE;
 }
@@ -245,11 +246,11 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
     if (game->won != 0) {
         // Messages de fin de partie
         if (game->won == DRAW) {
-            snprintf(msg, sizeof(msg), "Egalite!");
+            snprintf(msg, sizeof(msg), "Egalité !");
         } else if (game->won==P1) {
-            snprintf(msg, sizeof(msg), "Joueur 1 (Bleu) a gagne!");
+            snprintf(msg, sizeof(msg), "Joueur 1 (Bleu) a gagné !");
         } else if (game->won==P2) {
-            snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagne!");
+            snprintf(msg, sizeof(msg), "Joueur 2 (Rouge) a gagné !");
         }
 
         // Désactivation des interactions en fin de partie
@@ -261,7 +262,7 @@ void draw_ui(cairo_t *cr, Game *game, int start_x, int start_y, int grid_width, 
     } else {
         // Messages de tour en cours selon le mode de jeu
         if (game->game_mode == LOCAL) {
-            snprintf(msg, sizeof(msg), "Tour: %d", game->turn + 1);
+            snprintf(msg, sizeof(msg), "Tour : %d", game->turn + 1);
         } else {
             // Mode réseau : indicateurs détaillés de tour
             int is_server_turn = (current_player_turn(game) == P2);
@@ -494,7 +495,7 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
                 Player current_player = current_player_turn(game);
                 Player piece_owner = get_player(game->board[row][col]);
                 if (piece_owner != current_player) {
-                    printf("[CLICK] Impossible de sélectionner une pièce adverse !\n");
+                    LOG_INFO_MSG("[CLICK] Impossible de sélectionner une pièce adverse !");
                     return;
                 }
 
@@ -504,8 +505,7 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
                 have_source = TRUE;
                 calculate_possible_moves(game, row, col);
 
-                printf("[CLICK] Source sélectionnée: %d,%d (%d mouvements possibles)\n",
-                       src_r, src_c, num_possible_moves);
+                LOG_INFO_MSG("[CLICK] Source sélectionnée: %d,%d (%d mouvements possibles)", src_r, src_c, num_possible_moves);
 
                 // Redraw pour afficher la sélection et les indicateurs
                 gtk_widget_queue_draw(g_main_drawing_area);
@@ -515,7 +515,7 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
             
             // Gestion de la désélection par clic sur la même pièce
             if (row == src_r && col == src_c) {
-                printf("[CLICK] Désélection de la pièce %d,%d\n", src_r, src_c);
+                LOG_INFO_MSG("[CLICK] Désélection de la pièce %d,%d", src_r, src_c);
                 have_source = FALSE;
                 src_r = -1;
                 src_c = -1;
@@ -535,7 +535,7 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
             
             // Exécution ou rejet du mouvement selon sa validité
             if (move_valid) {
-                printf("[CLICK] Destination valide: %d,%d\n", row, col);
+                LOG_INFO_MSG("[CLICK] Destination valide: %d,%d", row, col);
                 on_user_move_decided(game, src_r, src_c, row, col);
                 
                 // Réinitialisation de la sélection après mouvement valide
@@ -545,7 +545,7 @@ static void on_mouse_click(GtkGestureClick *gesture, gint n_press, gdouble x, gd
                 num_possible_moves = 0;
                 gtk_widget_queue_draw(g_main_drawing_area);
             } else {
-                printf("[CLICK] Destination invalide: %d,%d (coup ignoré)\n", row, col);
+                LOG_INFO_MSG("[CLICK] Destination invalide: %d,%d (coup ignoré)", row, col);
                 // Conservation de la sélection actuelle pour permettre un nouveau choix
                 return;
             }

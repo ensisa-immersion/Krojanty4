@@ -17,11 +17,9 @@ static int tests_failed = 0;
 #define TEST_ASSERT(condition, message) \
     do { \
         if (condition) { \
-            printf("[TEST][INTEGRATION][OK] %s\n", message); \
             LOG_SUCCESS_MSG("[TEST][INTEGRATION][OK] %s", message); \
             tests_passed++; \
         } else { \
-            printf("[TEST][INTEGRATION][KO] %s\n", message); \
             LOG_ERROR_MSG("[TEST][INTEGRATION][KO] %s", message); \
             tests_failed++; \
         } \
@@ -225,9 +223,5 @@ int main() {
     test_move_format_validation();
     test_network_game_simulation();
 
-    printf("[TEST][INTEGRATION][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
     LOG_INFO_MSG("[TEST][INTEGRATION][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
-
-    // Clean up
-    logger_cleanup();
 }

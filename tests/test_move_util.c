@@ -18,11 +18,9 @@ static int tests_failed = 0;
 #define TEST_ASSERT(condition, message) \
     do { \
         if (condition) { \
-            printf("[TEST][MOVE][OK] %s\n", message); \
             LOG_SUCCESS_MSG("[TEST][MOVE][OK] %s", message); \
             tests_passed++; \
         } else { \
-            printf("[TEST][MOVE][KO] %s\n", message); \
             LOG_ERROR_MSG("[TEST][MOVE][KO] %s", message); \
             tests_failed++; \
         } \
@@ -160,9 +158,5 @@ int main() {
     test_invalid_moves();
     test_coordinate_consistency();
 
-    printf("[TEST][MOVE][RESULT] %d/%d\n", tests_passed, tests_passed + tests_failed);
     LOG_INFO_MSG("[TEST][MOVE][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
-
-    // Clean up
-    logger_cleanup();
 }

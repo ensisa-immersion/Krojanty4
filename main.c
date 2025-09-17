@@ -25,12 +25,14 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+
 #include "game.h"
 #include "display_gtk.h"
 #include "client.h"
 #include "server.h"
 #include "algo.h"
 #include "input.h"
+#include "logging.h"
 
 
 /**
@@ -71,6 +73,10 @@ void* run_server_thread(void* arg) {
  * @return int Code de retour du programme
  */
 int main(int argc, char *argv[]) {
+    if (logger_init("./logs/game.log", LOG_DEBUG) != 0) {
+        fprintf(stderr, "Impossible d'initialiser le logger\n");
+        return 1;
+    }
 
     Game game;
     int ai_enabled = 0;
@@ -90,13 +96,13 @@ int main(int argc, char *argv[]) {
 
     if (argc == 1 || (argc >= 2 && strcmp(argv[1], "-l") == 0)) {
         // Mode LOCAL (2 joueurs sur la même machine)
-        printf("Démarrage en mode local%s...\n", ai_enabled ? " avec IA" : "");
+        LOG_INFO_MSG("Démarrage en mode local%s...\n", ai_enabled ? " avec IA" : "");
         game = init_game(LOCAL, ai_enabled);
     }
     else if (argc >= 2 && strcmp(argv[1], "-s") == 0 && argc >= 3) {
         // Mode SERVEUR (host + player)
         int port = atoi(argv[2]);
-        printf("Démarrage du serveur sur le port %d%s...\n", port, ai_enabled ? " avec IA" : "");
+        LOG_INFO_MSG("Démarrage du serveur sur le port %d%s...\n", port, ai_enabled ? " avec IA" : "");
         game = init_game(SERVER, ai_enabled);
 
         // Lance le serveur dans un thread séparé pour ne pas bloquer la GUI
