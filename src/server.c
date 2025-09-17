@@ -290,3 +290,11 @@ int run_server_host(Game *game, int port) {
     printf("[SERVER] Match lancé. Thread RX client actif.\n");
     return 0;
 }
+
+/*
+   /\_/\  
+  ( o.o ) 
+   > ^ <  
+ loic.maurer@uha.fr
+ 
+*/
