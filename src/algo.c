@@ -219,8 +219,8 @@ int utility(Game * game, Player player) {
     for (int i = 3; i <= 5; i++) {
         for (int j = 3; j <= 5; j++) {
             Player piece_owner = get_player(game->board[i][j]);
-            if (piece_owner == P1) score_p1 += 25;
-            if (piece_owner == P2) score_p2 += 25;
+            if (piece_owner == P1) score_p1 += 250;
+            if (piece_owner == P2) score_p2 += 250;
         }
     }
 
