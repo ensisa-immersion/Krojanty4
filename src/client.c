@@ -13,13 +13,13 @@
  * @date 17 septembre 2025
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <unistd.h>
+#include <stdio.h>      // fprintf, perror
+#include <stdlib.h>     // malloc, free, atoi
+#include <string.h>     // memset, strcmp, strchr
+#include <pthread.h>    // pthread_t, pthread_create, pthread_detach
+#include <arpa/inet.h>  // inet_pton
+#include <netinet/in.h> // struct sockaddr_in
+#include <unistd.h>     // close
 
 #include "game.h"
 #include "display_gtk.h"
@@ -27,7 +27,6 @@
 #include "netutil.h"
 #include "move_util.h"
 #include "logging.h"
-#include "../include/logging.h"
 
 /** @brief Socket global de connexion au serveur */
 int g_client_socket = -1;
