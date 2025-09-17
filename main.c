@@ -1,20 +1,57 @@
+
+/**
+ * @file main.c
+ * @brief Point d'entrée principal de l'application de jeu
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ *
+ * Ce fichier gère le lancement du jeu, le parsing des arguments,
+ * l'initialisation du mode (local, serveur, client), la gestion de l'IA,
+ * et le démarrage de l'interface graphique GTK.
+ *
+ * Modes supportés :
+ * - Local (2 joueurs sur la même machine, avec ou sans IA)
+ * - Serveur (host + joueur local, thread serveur séparé)
+ * - Client (connexion à un serveur distant)
+ *
+ * Utilisation :
+ *   ./game [-ia] -l
+ *   ./game [-ia] -s <port>
+ *   ./game [-ia] -c <ip:port>
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
 #include "game.h"
-#include "display_gtk.h" // Pour initialize_display
+#include "display_gtk.h"
 #include "client.h"
 #include "server.h"
 #include "algo.h"
 #include "input.h"
 
+
+/**
+ * @struct ServerData
+ * @brief Structure de passage de données pour le thread serveur
+ */
 typedef struct {
-    Game *game;
-    int port;
+    Game *game; /**< Pointeur vers la structure de jeu */
+    int port;   /**< Port TCP d'écoute */
 } ServerData;
 
+
+/**
+ * @brief Fonction de thread pour lancer le serveur en mode hôte
+ *
+ * Cette fonction est exécutée dans un thread séparé pour ne pas bloquer la GUI.
+ * Elle lance le serveur sur le port spécifié et libère la mémoire à la fin.
+ *
+ * @param arg Pointeur vers une structure ServerData
+ * @return void*
+ */
 void* run_server_thread(void* arg) {
     ServerData *data = (ServerData*)arg;
     run_server_host(data->game, data->port);
@@ -22,6 +59,17 @@ void* run_server_thread(void* arg) {
     return NULL;
 }
 
+
+/**
+ * @brief Point d'entrée principal du programme
+ *
+ * Gère le parsing des arguments, l'initialisation du jeu, le choix du mode,
+ * la gestion de l'IA, la connexion réseau, et le lancement de l'interface GTK.
+ *
+ * @param argc Nombre d'arguments de la ligne de commande
+ * @param argv Tableau des arguments de la ligne de commande
+ * @return int Code de retour du programme
+ */
 int main(int argc, char *argv[]) {
 
     Game game;

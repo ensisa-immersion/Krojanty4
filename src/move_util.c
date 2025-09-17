@@ -16,7 +16,7 @@
  */
 
 #include "move_util.h"
-#include "display_gtk.h" // Pour display_request_redraw
+#include "display_gtk.h"
 #include "game.h"
 #include <gtk/gtk.h>
 
