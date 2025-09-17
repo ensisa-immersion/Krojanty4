@@ -3,7 +3,7 @@
 # Project settings
 PROJECT_NAME           = "Krojanty4"
 PROJECT_BRIEF          = "Jeu de stratégie - Groupe 4"
-PROJECT_LOGO           =
+PROJECT_LOGO           = logo.png
 OUTPUT_DIRECTORY       = output
 CREATE_SUBDIRS         = YES
 OUTPUT_LANGUAGE        = French
