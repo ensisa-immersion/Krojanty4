@@ -16,7 +16,7 @@
 
 #include <gtk/gtk.h>
 
-#include "display.h"
+#include "display_gtk.h"
 #include "game.h"
 #include "input.h"
 #include "const.h"
