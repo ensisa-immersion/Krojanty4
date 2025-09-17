@@ -1,3 +1,18 @@
+/**
+ * @file const.h
+ * @brief Constantes globales pour le jeu
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ * 
+ * Ce fichier contient les constantes globales du jeu, incluant :
+ * - Les dimensions du plateau de jeu
+ * - Les constantes d'affichage
+ * - Les paramètres de l'IA
+ * - Les constantes de logging et réseau
+ * - Le plateau de départ standard
+ */
+
+
 #ifndef IMMERSION_CONST_H
 #define IMMERSION_CONST_H
 

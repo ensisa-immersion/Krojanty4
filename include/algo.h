@@ -1,3 +1,17 @@
+/**
+ * @file algo.h
+ * @brief Algorithmes et structures pour l'IA du jeu
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ * 
+ * Ce fichier contient les algorithmes et structures pour l'IA, incluant :
+ * - Les structures de données pour les coups
+ * - Les fonctions d'évaluation
+ * - Les algorithmes minimax
+ * - L'API pour l'IA
+ * - Les fonctions de génération de coups
+ */
+
 #ifndef ALGO_H_INCLUDED
 #define ALGO_H_INCLUDED
 

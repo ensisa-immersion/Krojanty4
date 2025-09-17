@@ -1,3 +1,16 @@
+/**
+ * @file client.h
+ * @brief Interface client pour la connexion au serveur de jeu
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ * 
+ * Ce fichier contient les fonctions et variables pour la gestion du client :
+ * - Connexion au serveur
+ * - Réception des messages
+ * - Envoi des coups
+ * - Fermeture de la connexion
+ */
+
 #ifndef CLIENT_H
 #define CLIENT_H
 
