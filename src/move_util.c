@@ -14,8 +14,9 @@
  * @author Équipe IMM2526-GR4
  * @date 17 septembre 2025
  */
+
 #include "move_util.h"
-#include "display_gtk.h"
+#include "display_gtk.h" // Pour display_request_redraw
 #include "game.h"
 #include <gtk/gtk.h>
 

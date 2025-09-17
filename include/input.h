@@ -16,6 +16,8 @@
 #ifndef INPUT_H_INCLUDED
 #define INPUT_H_INCLUDED
 
+
+#include <gtk/gtk.h>
 #include "game.h"
 
 // ============================================================================

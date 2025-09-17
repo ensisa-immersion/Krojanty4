@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "game.h"
-#include "display_gtk.h"
+#include "display_gtk.h" // Pour initialize_display
 #include "client.h"
 #include "server.h"
 #include "algo.h"
