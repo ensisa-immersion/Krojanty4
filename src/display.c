@@ -335,10 +335,8 @@ void draw_callback(GtkDrawingArea *area G_GNUC_UNUSED, cairo_t *cr, int width, i
             if (tile != P_NONE) {
                 const char *symbol = NULL;
 
-                // Détection des bases (coins uniquement)
-                if ((i == 0 && j == 0) || (i == 8 && j == 8)) {
-                    symbol = "🏰"; // Château seulement dans les vrais coins (A9 et I1)
-                } else if (tile == P1_KING || tile == P2_KING) {
+                // Symboles normaux selon le type de pièce
+                if (tile == P1_KING || tile == P2_KING) {
                     symbol = "♔";
                 } else if (tile == P1_PAWN || tile == P2_PAWN) {
                     symbol = "♜";
