@@ -338,14 +338,13 @@ int king_threats(Game* game, Player player) {
                         if (p != NOT_PLAYER && p != player) threats++;
                     }
                 }
-                if (threats >= 2) return 1;
+                // if (threats >= 2) return 1;
                 return threats;
             }
         }
     }
     return 0;
 }
-
 
 // ÉVALUATION DES ROIS : Protection et positionnement stratégique
 int util_kings(Game* game, Player player) {
@@ -354,30 +353,37 @@ int util_kings(Game* game, Player player) {
     int piece_p1 = score_player_one(*game);
     int piece_p2 = score_player_two(*game);
 
+    int threats_p1 = king_threats(game, P1);
+    int threats_p2 = king_threats(game, P2);
+
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
             if (game->board[i][j] == P1_KING) {
-                score_p1 += 500; // Valeur intrinsèque élevée du roi
+                score_p1 += 1000; // Valeur intrinsèque élevée du roi
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P1 && piece_p1 <= ENDGAME_PIECE_THRESHOLD && ((i == 0) || (j == 0))) {
-                    score_p1 += 1000;
+                    score_p1 += 500;
 
                 }
-                if (king_is_threatened(game, P1)) {
-                    score_p1 -= 9000;
+                if (threats_p1 == 1) {
+                    score_p1 -= 1000;
+                } else if (threats_p1 >= 2) {
+                    score_p1 -= 2000;
                 }
             }
             if (game->board[i][j] == P2_KING) {
-                score_p2 += 500; // Valeur intrinsèque élevée du roi
+                score_p2 += 1000; // Valeur intrinsèque élevée du roi
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P2 && piece_p2 <= ENDGAME_PIECE_THRESHOLD && ((i == 8) || (j == 8))) {
-                    score_p2 += 1000;
+                    score_p2 += 500;
 
                 }
-                if (king_is_threatened(game, P2)) {
-                    score_p2 -= 9000;
+                if (threats_p2 == 1) {
+                    score_p2 -= 1000;
+                } else if (threats_p2 >= 2) {
+                    score_p2 -= 2000;
                 }
             }
         }
@@ -481,15 +487,17 @@ int utility(Game * game, Player player) {
     if (winner == P2) return (player == P2) ? 5000 : -5000;
     if (winner == DRAW) return 0;
 
-    // Vérification si un roi est en danger immédiat
-    int threat_p1 = king_threats(game, P1);
-    int threat_p2 = king_threats(game, P2);
-    if (threat_p1 > 0) return (player == P1) ? -10000 : 10000;
-    if (threat_p2 > 0) return (player == P2) ? -10000 : 10000;
-
     // Vérification si un roi a été capturé
     if (!king_is_alive(game, P1)) return (player == P1) ? -5000 : 5000;
     if (!king_is_alive(game, P2)) return (player == P2) ? -5000 : 5000;
+
+    // Vérification si un roi est en danger immédiat
+    int threat_p1 = king_threats(game, P1);
+    int threat_p2 = king_threats(game, P2);
+    if (threat_p1 >= 2) return (player == P1) ? -10000 : 10000;
+    if (threat_p2 >= 2) return (player == P2) ? -10000 : 10000;
+
+
 
     // Vérification des bases capturées
      if (game->board[8][0] == P1_KING || get_player(game->board[8][0]) == P1) {
@@ -497,9 +505,6 @@ int utility(Game * game, Player player) {
     }
     if (game->board[0][8] == P2_KING || get_player(game->board[0][8]) == P2) {
         return (player == P1) ? -5000 : 5000;
-    }
-    if (game->board[8][0] == P1_KING || get_player(game->board[8][0]) == P1) {
-        return (player == P2) ? -5000 : 5000;
     }
 
     // Vérification des conditions de fin de partie
@@ -531,8 +536,8 @@ int utility(Game * game, Player player) {
     }
 
     // Pénalités supplémentaires si le roi est menacé
-    if (player == P1) score -= threat_p1 * 1000;
-    if (player == P2) score -= threat_p2 * 1000;
+    if (player == P1 && threat_p1 == 1) score -= 1000;
+    if (player == P2 && threat_p2 == 1) score -= 1000;
 
     // Calcul du score final relatif au joueur évalué
     // int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
