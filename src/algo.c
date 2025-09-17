@@ -232,76 +232,71 @@ void update_with_move(Game * game, Move move) {
     }
 }
 
-/**
- * @brief Fonction d'évaluation heuristique de l'état du jeu
- * 
- * Cette fonction évalue la qualité d'une position pour un joueur donné.
- * Elle prend en compte plusieurs facteurs stratégiques :
- * - Les conditions de victoire/défaite
- * - Le nombre de pièces de chaque joueur
- * - La mobilité (nombre de mouvements possibles)
- * - Le contrôle du centre du plateau
- * - La position et la sécurité des rois
- * - Les menaces sur les pièces adverses
- * 
- * @param game Pointeur vers la structure de jeu à évaluer
- * @param player Joueur pour lequel effectuer l'évaluation (P1 ou P2)
- * @return int Score d'évaluation (positif = avantageux, négatif = désavantageux)
- */
-int utility(Game * game, Player player) {
-
-    Game temp = *game;
-    won(&temp);
-    Player winner = temp.won;
-
-    // Vérification des conditions de victoire (priorité absolue)
-    if (winner == P1) return (player == P1) ? 5000 : -5000;
-    if (winner == P2) return (player == P2) ? 5000 : -5000;
-    if (winner == DRAW) return 0;
-
-    // Initialisation des scores pour chaque joueur
-    int score_p1 = 0, score_p2 = 0;
-
-    // 1. ÉVALUATION DES PIÈCES : Compter les pièces (facteur principal)
+// ÉVALUATION DES PIÈCES : Compter les pièces (facteur principal)
+int util_pieces(Game* game, Player player) {
     int pieces_p1 = score_player_one(*game);
     int pieces_p2 = score_player_two(*game);
-    score_p1 += pieces_p1 * 100;  // Poids élevé pour la conservation des pièces
-    score_p2 += pieces_p2 * 100;
 
-    // 2. ÉVALUATION DE LA MOBILITÉ : Plus de mouvements = meilleure position
+    return (player == P1) ? (pieces_p1 - pieces_p2) : (pieces_p2 - pieces_p1);
+}
+
+// ÉVALUATION DE LA MOBILITÉ : Plus de mouvements = meilleure position
+int util_mobility(Game* game, Player player) {
     Move moves[10*16];
     int mobility_p1 = all_possible_moves(game, moves, P1);
     int mobility_p2 = all_possible_moves(game, moves, P2);
-    score_p1 += mobility_p1 * 50;  // Bonus significatif pour la flexibilité tactique
-    score_p2 += mobility_p2 * 50;
 
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            Player piece_owner = get_player(game->board[i][j]);
+    return (player == P1) ? (mobility_p1 - mobility_p2) * 50 : (mobility_p2 - mobility_p1) * 50;
+}
 
-            // 3. CONTRÔLE DU CENTRE : Occuper le centre est avantageux
-            if ((i >= 3 && i <= 5) && (j >= 3 && j <= 5)) {
+// CONTRÔLE DU CENTRE : Occuper le centre est avantageux
+int util_center(Game* game, Player player) {
+    int score_p1 = 0;
+    int score_p2 = 0;
+    for (int i = 3; i <= 5; i++) {
+        for (int j = 3; j <= 5; j++) {
+                Player piece_owner = get_player(game->board[i][j]);
                 if (piece_owner == P1) score_p1 += 125;
                 if (piece_owner == P2) score_p2 += 125;
-            }
+        }
+    }
+    return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
+}
 
-            // 4. POSITION AVANCÉE : Avancer vers l'adversaire
-            /* if (piece_owner == P1) {
-                // P1 veut avancer vers le bas (grandes valeurs de i)
-                score_p1 += i * 3;
-            }
-            if (piece_owner == P2) {
-                // P2 veut avancer vers le haut (petites valeurs de i)
-                score_p2 += (8 - i) * 3;
-            }
-            */
+// POSITION AVANCÉE : Avancer vers l'adversaire
+int util_forward(Game* game, Player player) {
+    int score_p1 = 0;
+    int score_p2 = 0;
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+                Player piece_owner = get_player(game->board[i][j]);
+                if (piece_owner == P1) {
+                    // P1 veut avancer vers le bas (grandes valeurs de i)
+                    score_p1 += i * 3;
+                }
+                if (piece_owner == P2) {
+                    // P2 veut avancer vers le haut (petites valeurs de i)
+                    score_p2 += (8 - i) * 3;
+                }
+        }
+    }
+    return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
+}
 
-            // 4. ÉVALUATION DES ROIS : Protection et positionnement stratégique
+// ÉVALUATION DES ROIS : Protection et positionnement stratégique
+int util_kings(Game* game, Player player) {
+    int score_p1 = 0;
+    int score_p2 = 0;
+    int piece_p1 = score_player_one(*game);
+    int piece_p2 = score_player_two(*game);
+
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
             if (game->board[i][j] == P1_KING) {
                 score_p1 += 500; // Valeur intrinsèque élevée du roi
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
-                if (player == P2 && pieces_p2 <= ENDGAME_PIECE_THRESHOLD) {
+                if (player == P1 && piece_p1 <= ENDGAME_PIECE_THRESHOLD) {
                     if ((i == 0 && j == 0) || (i == 0 && j == 8) || 
                         (i == 8 && j == 0) || (i == 8 && j == 8)) {
                         score_p1 += 800; // Bonus élevé pour atteindre un coin
@@ -315,7 +310,7 @@ int utility(Game * game, Player player) {
                 score_p2 += 500; // Valeur intrinsèque élevée du roi
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
-                if (player == P2 && pieces_p2 <= ENDGAME_PIECE_THRESHOLD) {
+                if (player == P2 && piece_p2 <= ENDGAME_PIECE_THRESHOLD) {
                     if ((i == 0 && j == 0) || (i == 0 && j == 8) || 
                         (i == 8 && j == 0) || (i == 8 && j == 8)) {
                         score_p2 += 800; // Bonus élevé pour atteindre un coin
@@ -325,8 +320,18 @@ int utility(Game * game, Player player) {
                     }
                 }
             }
+        }
+    }
+    return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
+}
 
-            // 5. FORMATION TACTIQUE : Bonus pour les pièces qui se protègent mutuellement
+// FORMATION TACTIQUE : Bonus pour les pièces qui se protègent mutuellement
+int util_tactics(Game* game, Player player) {
+    int score_p1 = 0;
+    int score_p2 = 0;
+
+    for (size_t i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
             Player piece = get_player(game->board[i][j]);
             if (piece != NOT_PLAYER) {
                 int allies_nearby = 0;
@@ -347,14 +352,25 @@ int utility(Game * game, Player player) {
                 if (piece == P1) score_p1 += allies_nearby * 50;
                 if (piece == P2) score_p2 += allies_nearby * 50;
             }
+        }
+    }
+    return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
+}
 
-            // 6. ANALYSE DES MENACES : Détection des pièces en danger de capture
+// ANALYSE DES MENACES : Détection des pièces en danger de capture
+int util_threats(Game* game, Player player) {
+    int score_p1 = 0;
+    int score_p2 = 0;
+    int dirs[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            Player piece = get_player(game->board[i][j]);
             if (piece != NOT_PLAYER) {
                 Player opponent = (piece == P1) ? P2 : P1;
                 int threats = 0;
 
                 // Vérification des menaces directes dans les 4 directions cardinales
-                int dirs[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
                 for (int d = 0; d < 4; d++) {
                     int ni = i + dirs[d][0];
                     int nj = j + dirs[d][1];
@@ -371,10 +387,51 @@ int utility(Game * game, Player player) {
             }
         }
     }
+    return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
+}
+
+/**
+ * @brief Fonction d'évaluation heuristique de l'état du jeu
+ * 
+ * Cette fonction évalue la qualité d'une position pour un joueur donné.
+ * Elle prend en compte plusieurs facteurs stratégiques :
+ * - Les conditions de victoire/défaite
+ * - Le nombre de pièces de chaque joueur
+ * - La mobilité (nombre de mouvements possibles)
+ * - Le contrôle du centre du plateau
+ * - La position et la sécurité des rois
+ * - Les menaces sur les pièces adverses
+ * 
+ * @param game Pointeur vers la structure de jeu à évaluer
+ * @param player Joueur pour lequel effectuer l'évaluation (P1 ou P2)
+ * @return int Score d'évaluation (positif = avantageux, négatif = désavantageux)
+ */
+int utility(Game * game, Player player) {
+    Game temp = *game;
+    won(&temp);
+    Player winner = temp.won;
+
+    // Vérification des conditions de victoire (priorité absolue)
+    if (winner == P1) return (player == P1) ? 5000 : -5000;
+    if (winner == P2) return (player == P2) ? 5000 : -5000;
+    if (winner == DRAW) return 0;
+
+    // Initialisation des scores pour chaque joueur
+    // int score_p1 = 0, score_p2 = 0;
+    int score = 0;
+
+    score += util_center(game, player);
+    // score += util_forward(game, player);
+    score += util_kings(game, player); 
+    score += util_pieces(game, player);
+    score += util_mobility(game, player);
+    score += util_tactics(game, player);
+    score += util_threats(game, player);
 
     // Calcul du score final relatif au joueur évalué
-    int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
-    return final_score;
+    // int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
+    return score;
+    // return final_score;
 }
 
 
