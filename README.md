@@ -8,6 +8,7 @@ Ce projet a été réalisé lors des deux premières semaines à l'ENSISA. Le bu
 
 Composition du groupe :
 
+- Ranim BEN ISSA
 - Corentin BOEGLIN
 - Mamadou DIALLO
 - Georges EL CHATER
@@ -15,7 +16,6 @@ Composition du groupe :
 - Loïc MAURER
 - Anna MAUROY
 - Alexis MIRAS
-- Ranim ...
 
 ## Installation des dépendances
 
@@ -63,6 +63,14 @@ Pour nettoyer les résidus de compilation, vous devez effectuer la commande suiv
 
 ```cmd
 make clean
+```
+
+## Tests unitaires
+
+Pour lancer les tests unitaires, vous devez effectuer la commande suivante :
+
+```cmd
+make test
 ```
 
 ## Lancement du jeu
