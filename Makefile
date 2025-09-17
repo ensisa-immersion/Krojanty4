@@ -78,11 +78,14 @@ test-clean:
 docs:
 	cd $(DOCS_DIR) && doxygen Doxyfile
 
+docs-clean:
+	rm -rf $(DOCS_DIR)/output
+
 # ========== NETTOYAGE ==========
 clean:
 	rm -f $(BUILD_DIR)/*
 
-clean-all: clean test-clean
+clean-all: clean test-clean docs-clean
 
 help:
 	@echo "$$HELP_BODY"
