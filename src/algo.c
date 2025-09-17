@@ -215,17 +215,6 @@ int utility(Game * game, Player player) {
     score_p1 += mobility_p1 * 50;  // Bonus pour la mobilité
     score_p2 += mobility_p2 * 50;
 
-    /* 
-    // 3. CONTRÔLE DU CENTRE : Occuper le centre est avantageux
-    for (int i = 3; i <= 5; i++) {
-        for (int j = 3; j <= 5; j++) {
-            Player piece_owner = get_player(game->board[i][j]);
-            if (piece_owner == P1) score_p1 += 250;
-            if (piece_owner == P2) score_p2 += 250;
-        }
-    } 
-    */
-
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
             Player piece_owner = get_player(game->board[i][j]);
@@ -237,7 +226,7 @@ int utility(Game * game, Player player) {
             }
 
             // 4. POSITION AVANCÉE : Avancer vers l'adversaire
-            if (piece_owner == P1) {
+            /* if (piece_owner == P1) {
                 // P1 veut avancer vers le bas (grandes valeurs de i)
                 score_p1 += i * 3;
             }
@@ -245,7 +234,7 @@ int utility(Game * game, Player player) {
                 // P2 veut avancer vers le haut (petites valeurs de i)
                 score_p2 += (8 - i) * 3;
             }
-
+ */
             // 5. PROTECTION DES ROIS : Les rois valent plus
             if (game->board[i][j] == P1_KING) score_p1 += 500;
             if (game->board[i][j] == P2_KING) score_p2 += 500;
@@ -292,66 +281,6 @@ int utility(Game * game, Player player) {
             }
         }
     }
-
-    /* 
-    // 5. PROTECTION DES ROIS : Les rois valent plus
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            if (game->board[i][j] == P1_KING) score_p1 += 500;
-            if (game->board[i][j] == P2_KING) score_p2 += 500;
-        }
-    }
-
-    // 6. FORMATION : Bonus pour les pièces qui se protègent mutuellement
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            Player piece = get_player(game->board[i][j]);
-            if (piece != NOT_PLAYER) {
-                int allies_nearby = 0;
-                // Vérifier les cases adjacentes
-                for (int di = -1; di <= 1; di++) {
-                    for (int dj = -1; dj <= 1; dj++) {
-                        if (di == 0 && dj == 0) continue;
-                        int ni = i + di, nj = j + dj;
-                        if (ni >= 0 && ni < 9 && nj >= 0 && nj < 9) {
-                            if (get_player(game->board[ni][nj]) == piece) {
-                                allies_nearby++;
-                            }
-                        }
-                    }
-                }
-                if (piece == P1) score_p1 += allies_nearby * 8;
-                if (piece == P2) score_p2 += allies_nearby * 8;
-            }
-        }
-    }
-
-    // 7. MENACES : Détecter les pièces adverses en danger
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 9; j++) {
-            Player piece = get_player(game->board[i][j]);
-            if (piece != NOT_PLAYER) {
-                Player opponent = (piece == P1) ? P2 : P1;
-                int threats = 0;
-
-                // Vérifier si cette pièce peut être capturée
-                int dirs[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
-                for (int d = 0; d < 4; d++) {
-                    int ni = i + dirs[d][0];
-                    int nj = j + dirs[d][1];
-                    if (ni >= 0 && ni < 9 && nj >= 0 && nj < 9) {
-                        if (get_player(game->board[ni][nj]) == opponent) {
-                            threats++;
-                        }
-                    }
-                }
-
-                if (piece == P1) score_p1 -= threats * 40;  // Malus pour être en danger
-                if (piece == P2) score_p2 -= threats * 40;
-            }
-        }
-    } 
-    */
 
     int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
     return final_score;
