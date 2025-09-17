@@ -1,3 +1,16 @@
+/**
+ * @file algo.c
+ * @brief Implémentation de l'intelligence artificielle pour le jeu
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ * 
+ * Ce fichier contient toutes les fonctions liées à l'IA du jeu, incluant :
+ * - L'évaluation des positions (fonction utility)
+ * - L'algorithme minimax avec élagage alpha-bêta
+ * - La génération et le tri des mouvements possibles
+ * - Les fonctions de simulation de mouvements pour l'IA
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -6,43 +19,55 @@
 #include "const.h"
 
 /**
- * Fonction de mise à jour du plateau pour l'IA
- * Elle est similaire à update_board mais sans SDL_Delay.
- *
- * @param game Pointeur vers la structure de jeu
- * @param dst_row Ligne de destination
- * @param dst_col Colonne de destination
- * @return void
+ * @struct UndoInfo
+ * @brief Structure contenant les informations nécessaires pour annuler un mouvement
+ * 
+ * Cette structure est utilisée par l'IA pour sauvegarder l'état du jeu
+ * avant de simuler un mouvement, permettant de revenir à l'état précédent.
  */
-// Required info to undo a move
 typedef struct {
-    int src_row, src_col;
-    int dst_row, dst_col;
-
-    int src_piece;
-    int dst_piece;
-
-    int turn_before;
-    int won_before;
-
-    // eaten pawns
-    int eaten_count;
-    EatenPiece eaten[4];
+    int src_row;        /**< Ligne source du mouvement */
+    int src_col;        /**< Colonne source du mouvement */
+    int dst_row;        /**< Ligne destination du mouvement */
+    int dst_col;        /**< Colonne destination du mouvement */
+    
+    int src_piece;      /**< Pièce à la position source */
+    int dst_piece;      /**< Pièce à la position destination */
+    
+    int turn_before;    /**< Numéro du tour avant le mouvement */
+    int won_before;     /**< État de victoire avant le mouvement */
+    
+    int eaten_count;    /**< Nombre de pièces capturées */
+    EatenPiece eaten[4]; /**< Tableau des pièces capturées (max 4) */
 } UndoInfo;
 
-// Checks if AI ate a pawn and updates UndoInfo
+/**
+ * @brief Vérifie et applique les captures lors d'un mouvement de l'IA
+ * 
+ * Cette fonction examine les cases adjacentes à la position donnée pour détecter
+ * des pièces adverses qui peuvent être capturées selon les règles du jeu.
+ * Elle met à jour la structure UndoInfo avec les informations des captures.
+ * 
+ * @param game Pointeur vers la structure de jeu
+ * @param row Ligne de la position à examiner
+ * @param col Colonne de la position à examiner  
+ * @param sprint_direction Direction du mouvement effectué
+ * @param undo Pointeur vers la structure UndoInfo à mettre à jour
+ */
 void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoInfo *undo) {
-    undo->eaten_count = 0; // reset
+    undo->eaten_count = 0; // Réinitialisation du compteur de captures
 
+    // Détermination des joueurs actuel et adverse
     Player player = ((game->turn & 1) == 0) ? P1 : P2;
     Player opponent = (player == P1) ? P2 : P1;
 
-    Player top = (row - 1 >= 0)? get_player(game->board[row - 1][col]) : NOT_PLAYER;
-    Player left = (col - 1 >= 0)? get_player(game->board[row][col - 1]) : NOT_PLAYER;
-    Player right = (col + 1 <= 8)? get_player(game->board[row][col + 1]) : NOT_PLAYER;
-    Player down = (row + 1 <= 8)? get_player(game->board[row + 1][col]) : NOT_PLAYER;
+    // Vérification des cases adjacentes pour détecter les adversaires
+    Player top = (row - 1 >= 0) ? get_player(game->board[row - 1][col]) : NOT_PLAYER;
+    Player left = (col - 1 >= 0) ? get_player(game->board[row][col - 1]) : NOT_PLAYER;
+    Player right = (col + 1 <= 8) ? get_player(game->board[row][col + 1]) : NOT_PLAYER;
+    Player down = (row + 1 <= 8) ? get_player(game->board[row + 1][col]) : NOT_PLAYER;
 
-    // --- same logic, but record before removal ---
+    // Si haut est un adversaire et qu'il peut être capturé
     if (top == opponent) {
         if (((row - 2 < 0 || get_player(game->board[row - 2][col]) != opponent) && sprint_direction == DIR_TOP) ||
             (get_player(game->board[row - 2][col]) == player && row - 2 >= 0)) {
@@ -54,7 +79,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
             game->board[row - 1][col] = P_NONE;
         }
     }
-
+    // Si gauche est un adversaire et qu'il peut être capturé
     if (left == opponent) {
         if (((col - 2 < 0 || get_player(game->board[row][col - 2]) != opponent) && sprint_direction == DIR_LEFT) ||
             (get_player(game->board[row][col - 2]) == player && col - 2 >= 0)) {
@@ -67,6 +92,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         }
     }
 
+    // Si droite est un adversaire et qu'il peut être capturé
     if (right == opponent) {
         if (((col + 2 > 8 || get_player(game->board[row][col + 2]) != opponent) && sprint_direction == DIR_RIGHT) ||
             (get_player(game->board[row][col + 2]) == player && col + 2 <= 8)) {
@@ -79,6 +105,7 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
         }
     }
 
+    // Si bas est un adversaire et qu'il peut être capturé
     if (down == opponent) {
         if (((row + 2 > 8 || get_player(game->board[row + 2][col]) != opponent) && sprint_direction == DIR_DOWN) ||
             (get_player(game->board[row + 2][col]) == player && row + 2 <= 8)) {
@@ -92,12 +119,25 @@ void did_eat_ai(Game *game, int row, int col, Direction sprint_direction, UndoIn
     }
 }
 
-// Update sboard and stores necessary info to undo it
+/**
+ * @brief Applique un mouvement sur le plateau pour les simulations de l'IA
+ * 
+ * Cette fonction met à jour le plateau de jeu en appliquant un mouvement donné.
+ * Elle gère également les captures résultantes et sauvegarde les informations
+ * nécessaires pour pouvoir annuler le mouvement.
+ * 
+ * @param game Pointeur vers la structure de jeu à modifier
+ * @param dst_row Ligne de destination du mouvement
+ * @param dst_col Colonne de destination du mouvement
+ * @return UndoInfo Structure contenant les informations pour annuler le mouvement
+ */
 UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
     UndoInfo undo;
+    // Récupération de la position source sélectionnée
     int src_row = game->selected_tile[0];
     int src_col = game->selected_tile[1];
 
+    // Initialisation de la structure d'annulation
     undo.src_row = src_row;
     undo.src_col = src_col;
     undo.dst_row = dst_row;
@@ -108,37 +148,48 @@ UndoInfo update_board_ai(Game *game, int dst_row, int dst_col) {
     undo.won_before = game->won;
     undo.eaten_count = 0;
 
-    // apply move
+    // Application du mouvement sur le plateau
     game->board[dst_row][dst_col] = undo.src_piece;
     game->board[src_row][src_col] = (get_player(undo.src_piece) == P1) ? P1_VISITED : P2_VISITED;
 
-    // check captures
+    // Détermination de la direction du mouvement pour les captures
     Direction direction;
     if (dst_row != src_row) {
         direction = (dst_row < src_row) ? DIR_TOP : DIR_DOWN;
     } else {
         direction = (src_col > dst_col) ? DIR_LEFT : DIR_RIGHT;
     }
+    
+    // Vérification et application des captures
     did_eat_ai(game, dst_row, dst_col, direction, &undo);
 
-    // won(game);
-
+    // Avancement du tour (won() est commenté pour éviter les effets de bord)
     game->turn++;
 
     return undo;
 }
 
+/**
+ * @brief Annule un mouvement précédemment appliqué par l'IA
+ * 
+ * Cette fonction restaure l'état du plateau de jeu à partir des informations
+ * sauvegardées dans la structure UndoInfo. Elle remet en place toutes les
+ * pièces à leur position d'origine et restaure l'état du jeu.
+ * 
+ * @param game Pointeur vers la structure de jeu à restaurer
+ * @param undo Structure contenant les informations de restauration
+ */
 void undo_board_ai(Game *game, UndoInfo undo) {
-    // restore board
+    // Restauration des positions des pièces
     game->board[undo.src_row][undo.src_col] = undo.src_piece;
     game->board[undo.dst_row][undo.dst_col] = undo.dst_piece;
 
-    // restore eaten pawns
+    // Restauration des pièces capturées
     for (int i = 0; i < undo.eaten_count; i++) {
         game->board[undo.eaten[i].row][undo.eaten[i].col] = undo.eaten[i].piece;
     }
 
-    // restore state
+    // Restauration de l'état du jeu
     game->turn = undo.turn_before;
     game->won = undo.won_before;
 }
@@ -157,12 +208,12 @@ void update_with_move(Game * game, Move move) {
     game->selected_tile[0] = move.src_row;
     game->selected_tile[1] = move.src_col;
 
-    // Direct board update without using update_board_ai for simulations
+    // Mise à jour directe du plateau sans utiliser update_board_ai (réservé aux simulations IA)
     Piece moving_piece = game->board[move.src_row][move.src_col];
     game->board[move.dst_row][move.dst_col] = moving_piece;
     game->board[move.src_row][move.src_col] = (get_player(moving_piece) == P1) ? P1_VISITED : P2_VISITED;
 
-    // Check captures
+    // Vérification et application des captures éventuelles après le mouvement
     Direction direction = NONE;
     if (move.dst_row != move.src_row) {
         direction = (move.dst_row < move.src_row) ? DIR_TOP : DIR_DOWN;
@@ -174,20 +225,27 @@ void update_with_move(Game * game, Move move) {
         did_eat(game, move.dst_row, move.dst_col, direction);
     }
 
-    // Check win condition and advance turn
-    // won(game);
+    // Vérification de la condition de victoire
     if (game->won == NOT_PLAYER) {
         game->turn++;
     }
 }
 
 /**
- * Fonction d'évaluation avancée de l'état du jeu pour un joueur donné.
- * Elle combine plusieurs facteurs stratégiques.
- *
- * @param game Pointeur vers la structure de jeu
- * @param player Joueur pour lequel évaluer (P1 ou P2)
- * @return Score évalué
+ * @brief Fonction d'évaluation heuristique de l'état du jeu
+ * 
+ * Cette fonction évalue la qualité d'une position pour un joueur donné.
+ * Elle prend en compte plusieurs facteurs stratégiques :
+ * - Les conditions de victoire/défaite
+ * - Le nombre de pièces de chaque joueur
+ * - La mobilité (nombre de mouvements possibles)
+ * - Le contrôle du centre du plateau
+ * - La position et la sécurité des rois
+ * - Les menaces sur les pièces adverses
+ * 
+ * @param game Pointeur vers la structure de jeu à évaluer
+ * @param player Joueur pour lequel effectuer l'évaluation (P1 ou P2)
+ * @return int Score d'évaluation (positif = avantageux, négatif = désavantageux)
  */
 int utility(Game * game, Player player) {
 
@@ -200,19 +258,20 @@ int utility(Game * game, Player player) {
     if (winner == P2) return (player == P2) ? 5000 : -5000;
     if (winner == DRAW) return 0;
 
+    // Initialisation des scores pour chaque joueur
     int score_p1 = 0, score_p2 = 0;
 
-    // 1. SCORE DE BASE : Compter les pièces (poids fort)
+    // 1. ÉVALUATION DES PIÈCES : Compter les pièces (facteur principal)
     int pieces_p1 = score_player_one(*game);
     int pieces_p2 = score_player_two(*game);
-    score_p1 += pieces_p1 * 100;  // Poids élevé pour les pièces
+    score_p1 += pieces_p1 * 100;  // Poids élevé pour la conservation des pièces
     score_p2 += pieces_p2 * 100;
 
-    // 2. MOBILITÉ : Plus de mouvements = meilleure position
+    // 2. ÉVALUATION DE LA MOBILITÉ : Plus de mouvements = meilleure position
     Move moves[10*16];
     int mobility_p1 = all_possible_moves(game, moves, P1);
     int mobility_p2 = all_possible_moves(game, moves, P2);
-    score_p1 += mobility_p1 * 50;  // Bonus pour la mobilité
+    score_p1 += mobility_p1 * 50;  // Bonus significatif pour la flexibilité tactique
     score_p2 += mobility_p2 * 50;
 
     for (int i = 0; i < 9; i++) {
@@ -236,39 +295,45 @@ int utility(Game * game, Player player) {
             }
             */
 
-            // 5. PROTECTION DES ROIS : Les rois valent plus
+            // 4. ÉVALUATION DES ROIS : Protection et positionnement stratégique
             if (game->board[i][j] == P1_KING) {
-                score_p1 += 500;
+                score_p1 += 500; // Valeur intrinsèque élevée du roi
+                
+                // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P2 && pieces_p2 <= ENDGAME_PIECE_THRESHOLD) {
-                    // Encourage AI to move king to corner in endgame
-                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || (i == 8 && j == 0) || (i == 8 && j == 8)) {
+                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || 
+                        (i == 8 && j == 0) || (i == 8 && j == 8)) {
                         score_p1 += 800; // Bonus élevé pour atteindre un coin
-                        score_p2 -= 500; // Malus pour l'adversaire
+                        score_p2 -= 500; // Malus correspondant pour l'adversaire
                     } else {
-                        score_p1 += 300; // Moins de bonus pour être ailleurs
+                        score_p1 += 300; // Bonus modéré pour autres positions
                     }
                 }
             }
             if (game->board[i][j] == P2_KING) {
-                score_p2 += 500;
+                score_p2 += 500; // Valeur intrinsèque élevée du roi
+                
+                // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P2 && pieces_p2 <= ENDGAME_PIECE_THRESHOLD) {
-                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || (i == 8 && j == 0) || (i == 8 && j == 8)) {
-                        score_p2 += 800; 
-                        score_p1 -= 500; 
+                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || 
+                        (i == 8 && j == 0) || (i == 8 && j == 8)) {
+                        score_p2 += 800; // Bonus élevé pour atteindre un coin
+                        score_p1 -= 500; // Malus correspondant pour l'adversaire
                     } else {
-                        score_p2 += 300;
+                        score_p2 += 300; // Bonus modéré pour autres positions
                     }
                 }
             }
 
-            // 6. FORMATION : Bonus pour les pièces qui se protègent mutuellement
+            // 5. FORMATION TACTIQUE : Bonus pour les pièces qui se protègent mutuellement
             Player piece = get_player(game->board[i][j]);
             if (piece != NOT_PLAYER) {
                 int allies_nearby = 0;
-                // Vérifier les cases adjacentes
+                
+                // Vérification des cases adjacentes pour détecter les alliés
                 for (int di = -1; di <= 1; di++) {
                     for (int dj = -1; dj <= 1; dj++) {
-                        if (di == 0 && dj == 0) continue;
+                        if (di == 0 && dj == 0) continue; // Ignorer la case actuelle
                         int ni = i + di, nj = j + dj;
                         if (ni >= 0 && ni < 9 && nj >= 0 && nj < 9) {
                             if (get_player(game->board[ni][nj]) == piece) {
@@ -277,79 +342,93 @@ int utility(Game * game, Player player) {
                         }
                     }
                 }
+                // Bonus proportionnel au nombre d'alliés adjacents
                 if (piece == P1) score_p1 += allies_nearby * 50;
                 if (piece == P2) score_p2 += allies_nearby * 50;
             }
 
-            // 7. MENACES : Détecter les pièces adverses en danger
+            // 6. ANALYSE DES MENACES : Détection des pièces en danger de capture
             if (piece != NOT_PLAYER) {
                 Player opponent = (piece == P1) ? P2 : P1;
                 int threats = 0;
 
-                // Vérifier si cette pièce peut être capturée
+                // Vérification des menaces directes dans les 4 directions cardinales
                 int dirs[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
                 for (int d = 0; d < 4; d++) {
                     int ni = i + dirs[d][0];
                     int nj = j + dirs[d][1];
                     if (ni >= 0 && ni < 9 && nj >= 0 && nj < 9) {
                         if (get_player(game->board[ni][nj]) == opponent) {
-                            threats++;
+                            threats++; // Comptage des adversaires adjacents
                         }
                     }
                 }
 
-                if (piece == P1) score_p1 -= threats * 50;  // Malus pour être en danger
+                // Malus proportionnel au niveau de menace
+                if (piece == P1) score_p1 -= threats * 50;
                 if (piece == P2) score_p2 -= threats * 50;
             }
         }
     }
 
+    // Calcul du score final relatif au joueur évalué
     int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
     return final_score;
 }
 
 
 /**
- * Génère tous les mouvements possibles pour un joueur donné.
- *
+ * @brief Génère tous les mouvements possibles pour un joueur donné
+ * 
+ * Cette fonction parcourt le plateau de jeu et génère tous les mouvements
+ * légaux pour les pièces du joueur spécifié. Elle explore les 4 directions
+ * cardinales (haut, bas, gauche, droite) pour chaque pièce du joueur.
+ * 
  * @param game Pointeur vers la structure de jeu
- * @param list Tableau pour stocker les mouvements possibles
+ * @param list Tableau pour stocker les mouvements possibles générés
  * @param player Joueur pour lequel générer les mouvements (P1 ou P2)
- * @return Nombre de mouvements générés
+ * @return int Nombre total de mouvements générés
  */
 int all_possible_moves(Game * game, Move * list, Player player) {
-    int size = 0;
+    int size = 0; // Compteur de mouvements générés
+    
+    // Parcours de toutes les cases du plateau
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
+            // Vérification si la case contient une pièce du joueur
             if (get_player(game->board[i][j]) == player) {
+                
+                // Exploration vers le bas (direction positive i)
                 int k = 1;
-                while ( (i + k) < 9 && (get_player(game->board[i + k][j]) == NOT_PLAYER) ) {
+                while ((i + k) < 9 && (get_player(game->board[i + k][j]) == NOT_PLAYER)) {
                     Move current_move = {i, j, i + k, j, -1};
                     list[size++] = current_move;
                     k++;
                 }
 
+                // Exploration vers le haut (direction négative i)
                 k = 1;
-                while ( (i - k) >= 0 && (get_player(game->board[i - k][j]) == NOT_PLAYER) )  {
+                while ((i - k) >= 0 && (get_player(game->board[i - k][j]) == NOT_PLAYER)) {
                     Move current_move = {i, j, i - k, j, -1};
                     list[size++] = current_move;
                     k++;
                 }
 
+                // Exploration vers la droite (direction positive j)
                 k = 1;
-                while ( (j + k) < 9 && (get_player(game->board[i][j + k]) == NOT_PLAYER) )  {
+                while ((j + k) < 9 && (get_player(game->board[i][j + k]) == NOT_PLAYER)) {
                     Move current_move = {i, j, i, j + k, -1};
                     list[size++] = current_move;
                     k++;
                 }
 
+                // Exploration vers la gauche (direction négative j)
                 k = 1;
-                while ( (j - k) >= 0 && (get_player(game->board[i][j - k]) == NOT_PLAYER) )  {
+                while ((j - k) >= 0 && (get_player(game->board[i][j - k]) == NOT_PLAYER)) {
                     Move current_move = {i, j, i, j - k, -1};
                     list[size++] = current_move;
                     k++;
                 }
-
             }
         }
     }
@@ -357,73 +436,90 @@ int all_possible_moves(Game * game, Move * list, Player player) {
     return size;
 }
 
-
 /**
- * Fonction de comparaison pour qsort
- * Trie les mouvements par score décroissant (merci les heures sur leetcode)
- *
- * @param a Pointeur vers le premier mouvement
- * @param b Pointeur vers le second mouvement
- * @return Entier indiquant l'ordre des mouvements
+ * @brief Fonction de comparaison pour le tri des mouvements
+ * 
+ * Cette fonction compare deux mouvements scorés pour le tri par ordre décroissant.
+ * Utilisée par qsort() pour ordonner les mouvements du plus prometteur au moins prometteur.
+ * 
+ * @param a Pointeur vers le premier mouvement scoré
+ * @param b Pointeur vers le second mouvement scoré
+ * @return int Valeur de comparaison pour le tri décroissant
  */
 int compare_moves_desc(const void *a, const void *b) {
     ScoredMove *m1 = (ScoredMove*)a;
     ScoredMove *m2 = (ScoredMove*)b;
-    // Higher scores first for AI (P2), you can reverse for P1
+    // Tri par score décroissant : les meilleurs scores en premier
     return m2->score - m1->score;
 }
 
 /**
- * Génère tous les mouvements possibles pour un joueur donné, les évalue et les trie par score décroissant.
- *
+ * @brief Génère tous les mouvements possibles pour un joueur et les trie par score
+ * 
+ * Cette fonction génère tous les mouvements légaux pour un joueur donné,
+ * évalue chaque mouvement avec une heuristique simple, puis trie les
+ * mouvements par ordre de préférence décroissant.
+ * 
  * @param game Pointeur vers la structure de jeu
- * @param move_list Tableau pour stock
+ * @param move_list Tableau pour stocker les mouvements triés
+ * @param player Joueur pour lequel générer les mouvements (P1 ou P2)
+ * @return int Nombre de mouvements générés et triés
  */
 int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
-    ScoredMove scored_moves[10*16];
-    int size = 0;
+    ScoredMove scored_moves[10*16]; // Tableau des mouvements avec scores
+    int size = 0; // Compteur de mouvements générés
 
-    int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}}; // Up, down, right, left
+    // Directions de mouvement : bas, haut, droite, gauche
+    int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
 
+    // Parcours de toutes les cases du plateau
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
+            // Vérification si la case contient une pièce du joueur
             if (get_player(game->board[i][j]) != player) continue;
 
+            // Exploration des 4 directions possibles
             for (int d = 0; d < 4; d++) {
-                int k = 1;
+                int k = 1; // Distance de déplacement
                 while (1) {
+                    // Calcul de la nouvelle position
                     int ni = i + k * dirs[d][0];
                     int nj = j + k * dirs[d][1];
 
-                    // Stop if out of bounds
+                    // Arrêt si hors du plateau
                     if (ni < 0 || ni >= 9 || nj < 0 || nj >= 9) break;
 
-                    // Stop if cell is not empty
+                    // Arrêt si la case n'est pas vide
                     if (get_player(game->board[ni][nj]) != NOT_PLAYER) break;
 
-                    // Create move and score it
+                    // Création et évaluation du mouvement
                     Move move = {i, j, ni, nj, -1};
                     Game temp = *game;
-                    update_with_move(&temp, move);
+                    
+                    // Simulation rapide du mouvement
+                    temp.board[ni][nj] = temp.board[i][j];
+                    temp.board[i][j] = (get_player(temp.board[i][j]) == P1) ? P1_VISITED : P2_VISITED;
 
+                    // Évaluation simple basée sur le score des joueurs
                     int score = score_player_two(temp) - score_player_one(temp);
 
-                    if (size < 10*16) { // Prevent overflow
+                    // Ajout du mouvement au tableau si il y a de la place
+                    if (size < 10*16) {
                         scored_moves[size].s_move = move;
                         scored_moves[size].score = score;
                         size++;
                     }
 
-                    k++;
+                    k++; // Passage à la distance suivante
                 }
             }
         }
     }
 
-    // Sort moves descending by score
+    // Tri des mouvements par score décroissant
     qsort(scored_moves, size, sizeof(ScoredMove), compare_moves_desc);
 
-    // Copy back to move_list
+    // Copie des mouvements triés dans le tableau de sortie
     for (int i = 0; i < size; i++) {
         move_list[i] = scored_moves[i].s_move;
     }
@@ -433,39 +529,50 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
 
 
 /**
- * Minimax avec élagage alpha-bêta
- *
- * @param game Pointeur vers la structure de jeu
- * @param depth Profondeur actuelle de l'arbre
- * @param maximizing Booléen indiquant si on maximise ou minimise
- * @param alpha Valeur alpha pour l'élagage
- * @param beta Valeur beta pour l'élagage
- * @param initial_player Joueur initial pour l'évaluation
- *
- * @return Score évalué
+ * @brief Algorithme minimax avec élagage alpha-bêta
+ * 
+ * Implémentation de l'algorithme minimax avec optimisation alpha-bêta pour
+ * l'évaluation des mouvements. Cet algorithme explore l'arbre de jeu en
+ * alternant entre maximisation et minimisation du score selon le joueur.
+ * 
+ * @param game Pointeur vers la structure de jeu à évaluer
+ * @param depth Profondeur restante de recherche dans l'arbre
+ * @param maximizing 1 si le joueur actuel maximise, 0 s'il minimise
+ * @param alpha Valeur alpha pour l'élagage (meilleur score pour maximizing)
+ * @param beta Valeur beta pour l'élagage (meilleur score pour minimizing)
+ * @param initial_player Joueur pour lequel on évalue la position
+ * @return int Score de la position évaluée
  */
 int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int beta, Player initial_player) {
+    // Condition d'arrêt : profondeur atteinte ou jeu terminé
     if (depth == 0 || game->won != NOT_PLAYER) {
         return utility(game, initial_player);
     }
+    
+    // Détermination du joueur actuel
     Player current_player = ( (game->turn & 1) == 1) ? P2 : P1;
 
-    Move possible_moves[10 * 16]; // 10 pawns with 16 moves each at best (oui le dernier ne peux que faire 15 mouvements au max mais hassoul)
+    // Génération de tous les mouvements possibles pour le joueur actuel
+    Move possible_moves[10 * 16]; // Maximum théorique : 10 pièces × 16 mouvements chacune
     int size = all_possible_moves(game, possible_moves, current_player);
 
     if (maximizing) {
-        int best_score = -100001; //-INF
+        int best_score = -100001; // Initialisation à -∞
+        
+        // Exploration de tous les mouvements possibles
         for (int i = 0; i < size; i++) {
             Move current_move = possible_moves[i];
-            // Update the board and save revert info
+            
+            // Application du mouvement et sauvegarde pour l'annulation
             game->selected_tile[0] = current_move.src_row;
             game->selected_tile[1] = current_move.src_col;
             UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
-            // Get score and revert board back to normal
+            // Évaluation récursive du mouvement
             int current_score = minimax_alpha_beta(game, depth - 1, !maximizing, alpha, beta, initial_player);
             undo_board_ai(game, undo_info);
 
+            // Mise à jour du meilleur score et élagage alpha-bêta
             best_score = (current_score >= best_score) ? current_score : best_score;
             alpha = (alpha > best_score) ? alpha : best_score;
             if (beta <= alpha) {
@@ -475,22 +582,26 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
         return best_score;
 
     } else {
-        int best_score = 100001; //INF
+        int best_score = 100001; // Initialisation à +∞ 
+        
+        // Exploration de tous les mouvements possibles
         for (int i = 0; i < size; i++) {
             Move current_move = possible_moves[i];
-            // Update the board with AI
+            
+            // Application du mouvement et sauvegarde pour l'annulation
             game->selected_tile[0] = current_move.src_row;
             game->selected_tile[1] = current_move.src_col;
             UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
-            // Get score and revert board back to normal
+            // Évaluation récursive du mouvement
             int current_score = minimax_alpha_beta(game, depth - 1, !maximizing, alpha, beta, initial_player);
             undo_board_ai(game, undo_info);
 
+            // Mise à jour du meilleur score et élagage alpha-bêta
             best_score = (current_score <= best_score) ? current_score : best_score;
             beta = (beta < best_score) ? beta : best_score;
             if (beta <= alpha) {
-                break;
+                break; // Élagage : pas besoin d'explorer plus
             }
         }
         return best_score;
@@ -498,51 +609,67 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
 }
 
 /**
- * Fonction principale pour obtenir le meilleur mouvement en utilisant minimax avec élagage alpha-bêta
- *
+ * @brief Trouve le meilleur mouvement en utilisant l'algorithme minimax avec élagage alpha-bêta
+ * 
+ * Cette fonction est le point d'entrée principal de l'IA. Elle génère tous les
+ * mouvements possibles, les évalue en utilisant l'algorithme minimax, et retourne
+ * le mouvement avec le meilleur score.
+ * 
  * @param game Pointeur vers la structure de jeu
- * @param depth Profondeur maximale pour la recherche
- * @return Meilleur mouvement trouvé
+ * @param depth Profondeur maximale de recherche dans l'arbre de jeu
+ * @return Move Le meilleur mouvement trouvé par l'algorithme
  */
 Move minimax_best_move(Game * game, int depth) {
+    // Détermination du joueur actuel
     Player current_player = ( (game->turn & 1) == 0) ? P1 : P2;
 
-    Move possible_moves[10 * 16]; // 10 pawns with 16 moves each at best (oui le dernier ne peux que faire 15 mouvements au max mais hassoul)
+    // Génération et tri des mouvements possibles
+    Move possible_moves[10 * 16]; // Capacité maximale théorique
     int size = all_possible_moves_ordered(game, possible_moves, current_player);
-    int best_score = -100001;
-    Move best_move = {-1, -1, -1, -1, -10001};
+    
+    // Initialisation des variables de recherche
+    int best_score = -100001; // Score initial très bas
+    Move best_move = {-1, -1, -1, -1, -10001}; // Mouvement par défaut invalide
 
+    // Évaluation de chaque mouvement possible
     for (int i = 0; i < size; i++) {
         Move current_move = possible_moves[i];
 
-        // Update the board and get info
+        // Application du mouvement et sauvegarde de l'état
         game->selected_tile[0] = current_move.src_row;
         game->selected_tile[1] = current_move.src_col;
         UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
-        // Get score and revert board back to normal
+        // Évaluation du mouvement avec minimax
         int current_score = minimax_alpha_beta(game, depth, 1, -100000, 100000, current_player);
         undo_board_ai(game, undo_info);
 
+        // Mise à jour du meilleur mouvement si nécessaire
         if (current_score > best_score) {
             best_move = possible_moves[i];
             best_score = current_score;
         }
     }
 
+    // Affichage du résultat pour le débogage
     printf(" Best score: %d, Player 2: %d\n", best_score, (game->turn & 1) == 1);
     return best_move;
 }
 
 /**
- * Premier mouvement fixe pour l'IA
- *
- * @param game Pointeur vers la structure de jeu
- * @return void
+ * @brief Exécute un premier mouvement prédéfini pour l'IA
+ * 
+ * Cette fonction fait jouer un mouvement d'ouverture fixe à l'IA.
+ * Utilisée dans certains modes de jeu où l'IA doit commencer avec
+ * un mouvement prédéterminé.
+ * 
+ * @param game Pointeur vers la structure de jeu à modifier
  */
 void client_first_move(Game * game) {
+    // Mouvement d'ouverture prédéfini : déplacement de (2,2) vers (4,2)
     Move first_move = {2, 2, 4, 2, -1};
 
+    // Application du mouvement
     game->selected_tile[0] = first_move.src_row;
     game->selected_tile[1] = first_move.src_col;
     update_board(game, first_move.dst_row, first_move.dst_col);
@@ -550,18 +677,24 @@ void client_first_move(Game * game) {
 
 
 /**
- * Fonction principale pour que l'IA joue son prochain mouvement.
- *
- * @param game Pointeur vers la structure de jeu
- * @return void
+ * @brief Fonction principale pour que l'IA joue son prochain mouvement
+ * 
+ * Cette fonction est appelée quand c'est au tour de l'IA de jouer.
+ * Elle utilise l'algorithme minimax pour déterminer le meilleur mouvement
+ * possible et l'applique au jeu.
+ * 
+ * @param game Pointeur vers la structure de jeu à modifier
  */
 void ai_next_move(Game* game) {
+    // Création d'une copie pour éviter les effets de bord
     Game copy = *game;
-    copy.is_ai = 0; // Makes it look like a local game for the AI not to call itself
+    copy.is_ai = 0; // Configuration pour éviter la récursion infinie
+    
+    // Calcul du meilleur mouvement avec la profondeur configurée
     Move best_move = minimax_best_move(&copy, DEPTH);
 
+    // Application du mouvement choisi au jeu réel
     game->selected_tile[0] = best_move.src_row;
     game->selected_tile[1] = best_move.src_col;
     update_board(game, best_move.dst_row, best_move.dst_col);
-
 }
