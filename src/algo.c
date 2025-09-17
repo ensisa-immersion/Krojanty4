@@ -235,8 +235,13 @@ void update_with_move(Game * game, Move move) {
 int util_pieces(Game* game, Player player) {
     int pieces_p1 = score_player_one(*game);
     int pieces_p2 = score_player_two(*game);
+    
+    int piece_value = (pieces_p1 <= ENDGAME_PIECE_THRESHOLD || pieces_p2 <= ENDGAME_PIECE_THRESHOLD) ? 30 : 100;
 
-    return (player == P1) ? (pieces_p1 - pieces_p2) : (pieces_p2 - pieces_p1);
+    int score_p1 = pieces_p1 * piece_value;
+    int score_p2 = pieces_p2 * piece_value;
+
+    return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
 }
 
 // ÉVALUATION DE LA MOBILITÉ : Plus de mouvements = meilleure position
@@ -282,6 +287,31 @@ int util_forward(Game* game, Player player) {
     return (player == P1) ? (score_p1 - score_p2) : (score_p2 - score_p1);
 }
 
+// Détection si un roi est menacé de capture immédiate
+int king_threats(Game* game, Player king_owner) {
+    int dirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if ((king_owner == P1 && game->board[i][j] == P1_KING) ||
+                (king_owner == P2 && game->board[i][j] == P2_KING)) {
+                int threats = 0;
+                for (int d = 0; d < 4; d++) {
+                    int ni = i + dirs[d][0];
+                    int nj = j + dirs[d][1];
+                    if (ni >= 0 && ni < GRID_SIZE && nj >= 0 && nj < GRID_SIZE) {
+                        if (get_player(game->board[ni][nj]) != king_owner &&
+                            get_player(game->board[ni][nj]) != NOT_PLAYER) {
+                            threats++;
+                        }
+                    }
+                }
+                if (threats >= 2) return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 // ÉVALUATION DES ROIS : Protection et positionnement stratégique
 int util_kings(Game* game, Player player) {
     int score_p1 = 0;
@@ -296,13 +326,14 @@ int util_kings(Game* game, Player player) {
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P1 && piece_p1 <= ENDGAME_PIECE_THRESHOLD) {
-                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || 
-                        (i == 8 && j == 0) || (i == 8 && j == 8)) {
-                        score_p1 += 800; // Bonus élevé pour atteindre un coin
-                        score_p2 -= 500; // Malus correspondant pour l'adversaire
+                    if ((i == 8) || (j == 8)) {
+                        score_p1 += 1000; // Bonus élevé pour atteindre un coin
                     } else {
                         score_p1 += 300; // Bonus modéré pour autres positions
                     }
+                }
+                if (king_threats(game, P1)) {
+                    score_p1 -= 9000;
                 }
             }
             if (game->board[i][j] == P2_KING) {
@@ -310,13 +341,14 @@ int util_kings(Game* game, Player player) {
                 
                 // Bonus spécial en fin de partie pour atteindre les coins
                 if (player == P2 && piece_p2 <= ENDGAME_PIECE_THRESHOLD) {
-                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || 
-                        (i == 8 && j == 0) || (i == 8 && j == 8)) {
+                    if ((i == 0) || (j == 0)) {
                         score_p2 += 800; // Bonus élevé pour atteindre un coin
-                        score_p1 -= 500; // Malus correspondant pour l'adversaire
                     } else {
                         score_p2 += 300; // Bonus modéré pour autres positions
                     }
+                }
+                if (king_threats(game, P2)) {
+                    score_p2 -= 9000;
                 }
             }
         }
@@ -329,7 +361,7 @@ int util_tactics(Game* game, Player player) {
     int score_p1 = 0;
     int score_p2 = 0;
 
-    for (size_t i = 0; i < GRID_SIZE; i++) {
+    for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
             Player piece = get_player(game->board[i][j]);
             if (piece != NOT_PLAYER) {
@@ -379,10 +411,12 @@ int util_threats(Game* game, Player player) {
                         }
                     }
                 }
+                // Malus plus sévère si le roi est menacé
+                if (piece == P1 && game->board[i][j] == P1_KING) score_p1 -= threats * 500; 
+                else if (piece == P1) score_p1 -= threats * 50;
 
-                // Malus proportionnel au niveau de menace
-                if (piece == P1) score_p1 -= threats * 50;
-                if (piece == P2) score_p2 -= threats * 50;
+                if (piece == P2 && game->board[i][j] == P2_KING) score_p2 -= threats * 500;
+                else if (piece == P2) score_p2 -= threats * 50;
             }
         }
     }
@@ -410,22 +444,52 @@ int utility(Game * game, Player player) {
     won(&temp);
     Player winner = temp.won;
 
+    int piece_p1 = score_player_one(*game);
+    int piece_p2 = score_player_two(*game);
+
     // Vérification des conditions de victoire (priorité absolue)
     if (winner == P1) return (player == P1) ? 5000 : -5000;
     if (winner == P2) return (player == P2) ? 5000 : -5000;
     if (winner == DRAW) return 0;
 
+    // Vérification si un roi est en danger immédiat
+    if (king_threats(game, P1)) return (player == P1) ? -10000 : 10000;  
+    if (king_threats(game, P2)) return (player == P2) ? -10000 : 10000;
+
+    // Vérification des bases capturées
+    if (game->board[8][0] == P1_KING || game->board[8][0] == P1) {
+        return (player == P2) ? -5000 : 5000;
+    }
+
+    // Vérification des conditions de fin de partie
+    if ((piece_p2 <= 2 && king_alive(game, P2)) || game->turn >= 64) {
+        int score_points = piece_p2 - piece_p1; 
+        return (player == P2) ? score_points : -score_points;
+    }
+
     // Initialisation des scores pour chaque joueur
     // int score_p1 = 0, score_p2 = 0;
     int score = 0;
 
-    score += util_center(game, player);
     // score += util_forward(game, player);
-    score += util_kings(game, player); 
-    score += util_pieces(game, player);
-    score += util_mobility(game, player);
-    score += util_tactics(game, player);
-    score += util_threats(game, player);
+
+    if (piece_p1 <= ENDGAME_PIECE_THRESHOLD || piece_p2 <= ENDGAME_PIECE_THRESHOLD) {
+        score += util_kings(game, player) * 10;
+        score += util_threats(game, player) * 6;
+        score += util_mobility(game, player) * 2; 
+        score += util_pieces(game, player) * 2; 
+        score += util_center(game, player) * 1;
+        score += util_tactics(game, player) * 1;
+    } else {
+        score += util_center(game, player) * 1;
+        score += util_kings(game, player) * 5;
+        score += util_pieces(game, player) * 2;
+        score += util_mobility(game, player) * 3;
+        score += util_tactics(game, player) * 2;
+        score += util_threats(game, player) * 4;
+    }
+
+
 
     // Calcul du score final relatif au joueur évalué
     // int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
@@ -558,7 +622,8 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
                     temp.board[i][j] = (get_player(temp.board[i][j]) == P1) ? P1_VISITED : P2_VISITED;
 
                     // Évaluation simple basée sur le score des joueurs
-                    int score = score_player_two(temp) - score_player_one(temp);
+                    // int score = score_player_two(temp) - score_player_one(temp);
+                    int score = utility(&temp, player); // TEST
 
                     // Ajout du mouvement au tableau si il y a de la place
                     if (size < 10*16) {
