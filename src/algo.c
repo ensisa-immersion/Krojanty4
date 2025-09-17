@@ -237,8 +237,29 @@ int utility(Game * game, Player player) {
             */
 
             // 5. PROTECTION DES ROIS : Les rois valent plus
-            if (game->board[i][j] == P1_KING) score_p1 += 500;
-            if (game->board[i][j] == P2_KING) score_p2 += 500;
+            if (game->board[i][j] == P1_KING) {
+                score_p1 += 500;
+                if (player == P2 && pieces_p2 <= ENDGAME_PIECE_THRESHOLD) {
+                    // Encourage AI to move king to corner in endgame
+                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || (i == 8 && j == 0) || (i == 8 && j == 8)) {
+                        score_p1 += 800; // Bonus élevé pour atteindre un coin
+                        score_p2 -= 500; // Malus pour l'adversaire
+                    } else {
+                        score_p1 += 300; // Moins de bonus pour être ailleurs
+                    }
+                }
+            }
+            if (game->board[i][j] == P2_KING) {
+                score_p2 += 500;
+                if (player == P2 && pieces_p2 <= ENDGAME_PIECE_THRESHOLD) {
+                    if ((i == 0 && j == 0) || (i == 0 && j == 8) || (i == 8 && j == 0) || (i == 8 && j == 8)) {
+                        score_p2 += 800; 
+                        score_p1 -= 500; 
+                    } else {
+                        score_p2 += 300;
+                    }
+                }
+            }
 
             // 6. FORMATION : Bonus pour les pièces qui se protègent mutuellement
             Player piece = get_player(game->board[i][j]);
