@@ -196,8 +196,8 @@ int utility(Game * game, Player player) {
     Player winner = temp.won;
 
     // Vérification des conditions de victoire (priorité absolue)
-    if (winner == P1) return (player == P1) ? 50000 : -50000;
-    if (winner == P2) return (player == P2) ? 50000 : -50000;
+    if (winner == P1) return (player == P1) ? 5000 : -5000;
+    if (winner == P2) return (player == P2) ? 5000 : -5000;
     if (winner == DRAW) return 0;
 
     int score_p1 = 0, score_p2 = 0;
@@ -212,15 +212,15 @@ int utility(Game * game, Player player) {
     Move moves[10*16];
     int mobility_p1 = all_possible_moves(game, moves, P1);
     int mobility_p2 = all_possible_moves(game, moves, P2);
-    score_p1 += mobility_p1 * 5;  // Bonus pour la mobilité
-    score_p2 += mobility_p2 * 5;
+    score_p1 += mobility_p1 * 50;  // Bonus pour la mobilité
+    score_p2 += mobility_p2 * 50;
 
     // 3. CONTRÔLE DU CENTRE : Occuper le centre est avantageux
     for (int i = 3; i <= 5; i++) {
         for (int j = 3; j <= 5; j++) {
             Player piece_owner = get_player(game->board[i][j]);
-            if (piece_owner == P1) score_p1 += 15;
-            if (piece_owner == P2) score_p2 += 15;
+            if (piece_owner == P1) score_p1 += 25;
+            if (piece_owner == P2) score_p2 += 25;
         }
     }
 
@@ -242,8 +242,8 @@ int utility(Game * game, Player player) {
     // 5. PROTECTION DES ROIS : Les rois valent plus
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
-            if (game->board[i][j] == P1_KING) score_p1 += 50;
-            if (game->board[i][j] == P2_KING) score_p2 += 50;
+            if (game->board[i][j] == P1_KING) score_p1 += 500;
+            if (game->board[i][j] == P2_KING) score_p2 += 500;
         }
     }
 
@@ -291,8 +291,8 @@ int utility(Game * game, Player player) {
                     }
                 }
 
-                if (piece == P1) score_p1 -= threats * 20;  // Malus pour être en danger
-                if (piece == P2) score_p2 -= threats * 20;
+                if (piece == P1) score_p1 -= threats * 40;  // Malus pour être en danger
+                if (piece == P2) score_p2 -= threats * 40;
             }
         }
     }
