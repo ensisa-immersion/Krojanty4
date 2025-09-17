@@ -52,6 +52,21 @@ typedef struct {
     int score;      ///< Score d'évaluation pour ce coup
 } ScoredMove;
 
+typedef struct {
+    int WIN;
+    int LOSS;
+    int DRAW;
+    int KING_VALUE;
+    int KING_ENDGAME;
+    int KING_THREAT_LIGHT; 
+    int KING_THREAT_CRITICAL;
+    int PIECE_VALUE;
+    int MOBILITY;
+    int CENTER;
+    int TACTICS;
+    int THREATS;
+} UtilWeights;
+
 // Fonctions essentielles qui décrivent l'état du jeu
 int utility(Game * game, Player player);
 int all_possible_moves(Game * game, Move * move_list, Player player);

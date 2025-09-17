@@ -41,6 +41,21 @@ typedef struct {
     EatenPiece eaten[4]; /**< Tableau des pièces capturées (max 4) */
 } UndoInfo;
 
+UtilWeights W = {
+    .WIN = 5000,
+    .LOSS = -5000,
+    .DRAW = 0,
+    .KING_VALUE = 500,
+    .KING_ENDGAME = 1000,
+    .KING_THREAT_LIGHT = -1000,
+    .KING_THREAT_CRITICAL = -10000,
+    .PIECE_VALUE = 100,
+    .MOBILITY = 50,
+    .CENTER = 125,
+    .TACTICS = 50,
+    .THREATS = 50
+};
+
 /**
  * @brief Vérifie et applique les captures lors d'un mouvement de l'IA
  * 
@@ -483,28 +498,20 @@ int utility(Game * game, Player player) {
     int piece_p2 = score_player_two(*game);
 
     // Vérification des conditions de victoire (priorité absolue)
-    if (winner == P1) return (player == P1) ? 5000 : -5000;
-    if (winner == P2) return (player == P2) ? 5000 : -5000;
+    if (winner == P1) return (player == P1) ? W.WIN : W.LOSS;
+    if (winner == P2) return (player == P2) ? W.WIN : W.LOSS;
     if (winner == DRAW) return 0;
 
     // Vérification si un roi a été capturé
-    if (!king_is_alive(game, P1)) return (player == P1) ? -5000 : 5000;
-    if (!king_is_alive(game, P2)) return (player == P2) ? -5000 : 5000;
-
-    // Vérification si un roi est en danger immédiat
-    int threat_p1 = king_threats(game, P1);
-    int threat_p2 = king_threats(game, P2);
-    if (threat_p1 >= 2) return (player == P1) ? -10000 : 10000;
-    if (threat_p2 >= 2) return (player == P2) ? -10000 : 10000;
-
-
+    if (!king_is_alive(game, P1)) return (player == P1) ? W.LOSS : W.WIN;
+    if (!king_is_alive(game, P2)) return (player == P2) ? W.LOSS : W.WIN;
 
     // Vérification des bases capturées
      if (game->board[8][0] == P1_KING || get_player(game->board[8][0]) == P1) {
-        return (player == P2) ? -5000 : 5000;
+        return (player == P2) ? W.LOSS : W.WIN;
     }
     if (game->board[0][8] == P2_KING || get_player(game->board[0][8]) == P2) {
-        return (player == P1) ? -5000 : 5000;
+        return (player == P1) ? W.LOSS : W.WIN;
     }
 
     // Vérification des conditions de fin de partie
@@ -516,6 +523,12 @@ int utility(Game * game, Player player) {
     // Initialisation des scores pour chaque joueur
     // int score_p1 = 0, score_p2 = 0;
     int score = 0;
+
+    // Vérification si un roi est en danger immédiat
+    int threat_p1 = king_threats(game, P1);
+    int threat_p2 = king_threats(game, P2);
+    if (threat_p1 >= 2) return (player == P1) ? W.KING_THREAT_CRITICAL : W.KING_VALUE;
+    if (threat_p2 >= 2) return (player == P2) ? W.KING_THREAT_CRITICAL : W.KING_VALUE;
 
     // score += util_forward(game, player);
 
@@ -536,8 +549,8 @@ int utility(Game * game, Player player) {
     }
 
     // Pénalités supplémentaires si le roi est menacé
-    if (player == P1 && threat_p1 == 1) score -= 1000;
-    if (player == P2 && threat_p2 == 1) score -= 1000;
+    if (player == P1 && threat_p1 == 1) score += W.KING_THREAT_LIGHT;
+    if (player == P2 && threat_p2 == 1) score += W.KING_THREAT_LIGHT;
 
     // Calcul du score final relatif au joueur évalué
     // int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
