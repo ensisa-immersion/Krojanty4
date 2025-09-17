@@ -180,7 +180,7 @@ void update_with_move(Game * game, Move move) {
         game->turn++;
     }
 }
- 
+
 /**
  * Fonction d'évaluation avancée de l'état du jeu pour un joueur donné.
  * Elle combine plusieurs facteurs stratégiques.
@@ -201,20 +201,20 @@ int utility(Game * game, Player player) {
     if (winner == DRAW) return 0;
 
     int score_p1 = 0, score_p2 = 0;
-    
+
     // 1. SCORE DE BASE : Compter les pièces (poids fort)
     int pieces_p1 = score_player_one(*game);
     int pieces_p2 = score_player_two(*game);
     score_p1 += pieces_p1 * 100;  // Poids élevé pour les pièces
     score_p2 += pieces_p2 * 100;
-    
+
     // 2. MOBILITÉ : Plus de mouvements = meilleure position
     Move moves[10*16];
     int mobility_p1 = all_possible_moves(game, moves, P1);
     int mobility_p2 = all_possible_moves(game, moves, P2);
     score_p1 += mobility_p1 * 5;  // Bonus pour la mobilité
     score_p2 += mobility_p2 * 5;
-    
+
     // 3. CONTRÔLE DU CENTRE : Occuper le centre est avantageux
     for (int i = 3; i <= 5; i++) {
         for (int j = 3; j <= 5; j++) {
@@ -223,7 +223,7 @@ int utility(Game * game, Player player) {
             if (piece_owner == P2) score_p2 += 15;
         }
     }
-    
+
     // 4. POSITION AVANCÉE : Avancer vers l'adversaire
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
@@ -238,7 +238,7 @@ int utility(Game * game, Player player) {
             }
         }
     }
-    
+
     // 5. PROTECTION DES ROIS : Les rois valent plus
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
@@ -246,7 +246,7 @@ int utility(Game * game, Player player) {
             if (game->board[i][j] == P2_KING) score_p2 += 50;
         }
     }
-    
+
     // 6. FORMATION : Bonus pour les pièces qui se protègent mutuellement
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
@@ -270,7 +270,7 @@ int utility(Game * game, Player player) {
             }
         }
     }
-    
+
     // 7. MENACES : Détecter les pièces adverses en danger
     for (int i = 0; i < 9; i++) {
         for (int j = 0; j < 9; j++) {
@@ -278,7 +278,7 @@ int utility(Game * game, Player player) {
             if (piece != NOT_PLAYER) {
                 Player opponent = (piece == P1) ? P2 : P1;
                 int threats = 0;
-                
+
                 // Vérifier si cette pièce peut être capturée
                 int dirs[4][2] = {{-1,0}, {1,0}, {0,-1}, {0,1}};
                 for (int d = 0; d < 4; d++) {
@@ -290,7 +290,7 @@ int utility(Game * game, Player player) {
                         }
                     }
                 }
-                
+
                 if (piece == P1) score_p1 -= threats * 20;  // Malus pour être en danger
                 if (piece == P2) score_p2 -= threats * 20;
             }
@@ -449,11 +449,16 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
     if (maximizing) {
         int best_score = -100001; //-INF
         for (int i = 0; i < size; i++) {
-            Game temp = *game;
             Move current_move = possible_moves[i];
-            update_with_move(&temp, current_move);
+            // Update the board and save revert info
+            game->selected_tile[0] = current_move.src_row;
+            game->selected_tile[1] = current_move.src_col;
+            UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
-            int current_score = minimax_alpha_beta(&temp, depth - 1, !maximizing, alpha, beta, initial_player);
+            // Get score and revert board back to normal
+            int current_score = minimax_alpha_beta(game, depth - 1, !maximizing, alpha, beta, initial_player);
+            undo_board_ai(game, undo_info);
+
             best_score = (current_score >= best_score) ? current_score : best_score;
             alpha = (alpha > best_score) ? alpha : best_score;
             if (beta <= alpha) {
@@ -465,11 +470,16 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
     } else {
         int best_score = 100001; //INF
         for (int i = 0; i < size; i++) {
-            Game temp = *game;
             Move current_move = possible_moves[i];
-            update_with_move(&temp, current_move);
+            // Update the board with AI
+            game->selected_tile[0] = current_move.src_row;
+            game->selected_tile[1] = current_move.src_col;
+            UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
 
-            int current_score = minimax_alpha_beta(&temp, depth - 1, !maximizing, alpha, beta, initial_player);
+            // Get score and revert board back to normal
+            int current_score = minimax_alpha_beta(game, depth - 1, !maximizing, alpha, beta, initial_player);
+            undo_board_ai(game, undo_info);
+
             best_score = (current_score <= best_score) ? current_score : best_score;
             beta = (beta < best_score) ? beta : best_score;
             if (beta <= alpha) {
@@ -496,10 +506,16 @@ Move minimax_best_move(Game * game, int depth) {
     Move best_move = {-1, -1, -1, -1, -10001};
 
     for (int i = 0; i < size; i++) {
-        Game temp = *game;
+        Move current_move = possible_moves[i];
 
-        update_with_move(&temp, possible_moves[i]);
-        int current_score = minimax_alpha_beta(&temp, depth, 1, -100000, 100000, current_player);
+        // Update the board and get info
+        game->selected_tile[0] = current_move.src_row;
+        game->selected_tile[1] = current_move.src_col;
+        UndoInfo undo_info = update_board_ai(game, current_move.dst_row, current_move.dst_col);
+
+        // Get score and revert board back to normal
+        int current_score = minimax_alpha_beta(game, depth, 1, -100000, 100000, current_player);
+        undo_board_ai(game, undo_info);
 
         if (current_score > best_score) {
             best_move = possible_moves[i];
