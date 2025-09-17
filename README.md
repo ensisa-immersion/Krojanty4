@@ -6,24 +6,20 @@ Code source de Krojanty réalisé par le groupe 4.
 
 Ce projet a été réalisé lors des deux premières semaines à l'ENSISA. Le but est de créer, en groupe, un projet couvrant divers points de l'informatique et des réseaux.
 
-C'est un jeu de stratégie (Avec IA intégrée) en 2D. Inspiré du Tablut/Hnefatafl, vous pouvez lire les règles du jeu dans le fichier `intro_jeu.pdf`.
-
-Le but principal est de prendre le plus possible de cases en déplaçant ses pions sur le plateau. L'adversaire pouvant faire de même, de la stratégie est nécessaire pour gagner.
-
 Composition du groupe :
 
-- Boeglin Corentin
-- Diallo Mamadou
-- El Chater Georges
-- Fiault Kioko
-- Maurer Loïc
-- Mauroy Anna
-- Miras Alexis
-- ... Ranim
+- Corentin BOEGLIN
+- Mamadou DIALLO
+- Georges EL CHATER
+- Kioko FIAULT
+- Loïc MAURER
+- Anna MAUROY
+- Alexis MIRAS
+- Ranim ...
 
 ## Installation des dépendances
 
-Les dépendances suivantes sont à installées sur votre machine :
+Les dépendances suivantes sont à installer sur votre machine :
 
 - `gcc` - Compilation des fichiers C
 - `gtk4` - Interface graphique du jeu
@@ -40,7 +36,7 @@ Pour compiler le jeu, vous devez effectuer la commande suivante :
 make
 ```
 
-Le fichier binaire sera créé dans le dossier `bin/` et s'appelle `game`.
+Le fichier binaire sera créé dans le dossier `build/` et s'appellera `game`.
 
 ### Documentation
 
@@ -50,11 +46,11 @@ Pour mettre en place la documentation, vous devez effectuer la commande suivante
 make docs
 ```
 
-Cela aura pour effet de créer un dossier dans `docs/output`. Il contient tout les fichiers statiques pour héberger la documentation.
+Cela aura pour effet de créer un dossier `output` dans `docs/`. Il contient tous les fichiers statiques pour héberger la documentation.
 
 Vous devez avoir un serveur web fonctionnel pour visualiser la documentation sous format HTML.
 
-La documentation contient :
+__La documentation contient :__
 
 - La description du projet.
 - Comment compiler les divers fichiers (Binaires, docs, etc.).
@@ -66,7 +62,7 @@ La documentation contient :
 Pour nettoyer les résidus de compilation, vous devez effectuer la commande suivante :
 
 ```cmd
-make clean-all
+make clean
 ```
 
 ## Lancement du jeu
@@ -74,17 +70,25 @@ make clean-all
 > [!note]
 > Vous devez d'abord compiler le jeu avant de le lancer.
 
-Vous pouvez lancer le jeu dans deux modes différents : serveur ou client.
+Vous pouvez lancer le jeu dans trois modes différents : en local, en serveur ou en client.
 
 En mode serveur, le jeu héberge une partie sur un port donné.
 En mode client, le jeu se connecte à un serveur à l'aide d'une IP:port donné.
+
+### Local
+
+Pour lancer le jeu en mode local, vous devez effectuer la commande suivante :
+
+```cmd
+./build/game -l
+```
 
 ### Serveur
 
 Pour lancer le jeu en mode serveur, vous devez effectuer la commande suivante :
 
 ```cmd
-./bin/game -s <port>
+./build/game -s <port>
 ```
 
 `<port>` est le port sur lequel le serveur va écouter les connexions entrantes.
@@ -94,7 +98,7 @@ Pour lancer le jeu en mode serveur, vous devez effectuer la commande suivante :
 Pour lancer le jeu en mode client, vous devez effectuer la commande suivante :
 
 ```cmd
-./bin/game -c <ip>:<port>
+./build/game -c <ip>:<port>
 ```
 
 ### Lancer le jeu avec une IA
@@ -104,7 +108,7 @@ Pour lancer le jeu avec une IA, vous devez ajouter l'option `-ia` à la commande
 Par exemple :
 
 ```cmd
-./bin/game -ia -c <ip>:<port>
+./build/game -ia -c <ip>:<port>
 ```
 
 Une IA peut aussi être lancée que ce soit en mode serveur ou en mode client.
