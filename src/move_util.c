@@ -1,3 +1,19 @@
+/**
+ * @file move_util.c
+ * @brief Utilitaires pour la gestion et l'application des mouvements
+ * 
+ * Ce fichier contient les fonctions utilitaires pour :
+ * - La conversion entre notation alphabétique et indices numériques des colonnes
+ * - L'application asynchrone des mouvements reçus du réseau dans le thread GTK
+ * - La gestion des tâches de mouvement pour l'interface graphique
+ * - La validation et le parsing des mouvements au format "A1B2"
+ * 
+ * Les fonctions permettent de faire le pont entre les données réseau
+ * et l'interface graphique GTK en respectant le modèle de threading.
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ */
 #include "move_util.h"
 #include "display.h"
 #include "game.h"
