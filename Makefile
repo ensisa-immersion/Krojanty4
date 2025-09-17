@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := game
 
 CC := gcc
 CFLAGS := -Wall -Wextra -std=c11 -O2 -Iinclude -I. $(shell pkg-config --cflags gtk4)
@@ -30,6 +30,8 @@ Usage:
   make <command>
 
 Commands:
+  make           Compile the main project (default target)
+  game           Compile the main project
   compile        Compile the main project
   docs           Generate documentation using Doxygen
   clean          Remove build files
@@ -40,10 +42,10 @@ Commands:
 endef
 export HELP_BODY
 
-.PHONY: docs compile clean help tests test-clean
+.PHONY: docs compile clean help tests test-clean game
 
 # ========== COMPILATION PRINCIPALE ==========
-compile: $(BIN)
+game: $(BIN)
 
 $(BIN): $(SRC)
 	@mkdir -p $(BUILD_DIR)
@@ -71,7 +73,6 @@ $(TEST_EXECUTABLES): $(TEST_DIR)/%: $(TEST_DIR)/%.c $(TEST_OBJECTS)
 
 # Nettoyage des tests
 test-clean:
-	@echo "🧹 Nettoyage des tests..."
 	rm -f $(TEST_EXECUTABLES)
 	rm -f $(BUILD_DIR)/*.o
 
@@ -81,11 +82,9 @@ docs:
 
 # ========== NETTOYAGE ==========
 clean:
-	@echo "🧹 Nettoyage des fichiers de build..."
 	rm -f $(BUILD_DIR)/*
 
 clean-all: clean test-clean
-	@echo "🧹 Nettoyage complet terminé"
 
 help:
 	@echo "$$HELP_BODY"
