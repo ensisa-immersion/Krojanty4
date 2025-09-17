@@ -52,6 +52,8 @@ CLASS_DIAGRAMS         = YES
 COLLABORATION_GRAPH    = YES
 GROUP_GRAPHS           = YES
 UML_LOOK               = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
 
 # Markdown
 MARKDOWN_SUPPORT       = YES
