@@ -221,8 +221,8 @@ int utility(Game * game, Player player) {
 
             // 3. CONTRÔLE DU CENTRE : Occuper le centre est avantageux
             if ((i >= 3 && i <= 5) && (j >= 3 && j <= 5)) {
-                if (piece_owner == P1) score_p1 += 250;
-                if (piece_owner == P2) score_p2 += 250;
+                if (piece_owner == P1) score_p1 += 125;
+                if (piece_owner == P2) score_p2 += 125;
             }
 
             // 4. POSITION AVANCÉE : Avancer vers l'adversaire
@@ -234,7 +234,8 @@ int utility(Game * game, Player player) {
                 // P2 veut avancer vers le haut (petites valeurs de i)
                 score_p2 += (8 - i) * 3;
             }
- */
+            */
+
             // 5. PROTECTION DES ROIS : Les rois valent plus
             if (game->board[i][j] == P1_KING) score_p1 += 500;
             if (game->board[i][j] == P2_KING) score_p2 += 500;
@@ -255,8 +256,8 @@ int utility(Game * game, Player player) {
                         }
                     }
                 }
-                if (piece == P1) score_p1 += allies_nearby * 8;
-                if (piece == P2) score_p2 += allies_nearby * 8;
+                if (piece == P1) score_p1 += allies_nearby * 50;
+                if (piece == P2) score_p2 += allies_nearby * 50;
             }
 
             // 7. MENACES : Détecter les pièces adverses en danger
@@ -276,8 +277,8 @@ int utility(Game * game, Player player) {
                     }
                 }
 
-                if (piece == P1) score_p1 -= threats * 40;  // Malus pour être en danger
-                if (piece == P2) score_p2 -= threats * 40;
+                if (piece == P1) score_p1 -= threats * 50;  // Malus pour être en danger
+                if (piece == P2) score_p2 -= threats * 50;
             }
         }
     }
