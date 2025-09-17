@@ -296,5 +296,5 @@ int run_server_host(Game *game, int port) {
   ( o.o ) 
    > ^ <  
  loic.maurer@uha.fr
- 
+
 */
