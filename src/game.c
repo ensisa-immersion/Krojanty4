@@ -17,7 +17,7 @@
 #include <math.h>
 
 #include "game.h"
-#include "display.h"
+#include "display_gtk.h"
 #include "algo.h"
 #include "input.h"
 #include "const.h"

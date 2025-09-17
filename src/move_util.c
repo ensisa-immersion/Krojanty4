@@ -15,7 +15,7 @@
  * @date 17 septembre 2025
  */
 #include "move_util.h"
-#include "display.h"
+#include "display_gtk.h"
 #include "game.h"
 #include <gtk/gtk.h>
 
