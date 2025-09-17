@@ -31,8 +31,12 @@ Usage:
 
 Commands:
   game           Compile the main project
-  docs           Generate documentation using Doxygen
   clean          Remove build files
+  clean-all      Remove all generated files (build, tests, docs)
+
+  Docs:
+  docs 			Generate documentation using Doxygen
+  docs-clean    Remove generated documentation files
 
   Tests:
   tests          Compile and run all tests
