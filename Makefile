@@ -30,9 +30,7 @@ Usage:
   make <command>
 
 Commands:
-  make           Compile the main project (default target)
   game           Compile the main project
-  compile        Compile the main project
   docs           Generate documentation using Doxygen
   clean          Remove build files
 
