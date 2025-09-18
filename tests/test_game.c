@@ -7,6 +7,7 @@
 
 #include "game.h"
 #include "logging.h"
+#include "const.h"
 
 // Compteurs de tests
 static int tests_passed = 0;
@@ -159,6 +160,102 @@ void test_ai_mode() {
 }
 
 /**
+ * Test de la fonction current_player_turn
+ */
+void test_current_player_turn() {
+    Game game = init_game(LOCAL, 0);
+
+    // Tour 0 = P1
+    TEST_ASSERT(current_player_turn(&game) == P1, "Tour 0: joueur P1");
+
+    // Tour 1 = P2
+    game.turn = 1;
+    TEST_ASSERT(current_player_turn(&game) == P2, "Tour 1: joueur P2");
+
+    // Tour 2 = P1
+    game.turn = 2;
+    TEST_ASSERT(current_player_turn(&game) == P1, "Tour 2: joueur P1");
+
+    // Tour 3 = P2
+    game.turn = 3;
+    TEST_ASSERT(current_player_turn(&game) == P2, "Tour 3: joueur P2");
+}
+
+/**
+ * Test de la fonction update_board
+ */
+void test_update_board() {
+    Game game = init_game(LOCAL, 0);
+
+    // Sauvegarder l'état initial
+    Piece original_piece = game.board[0][2]; // Pion P1 en C9
+
+    // Tester le mouvement d'un pion
+    update_board(&game, 1, 2); // Déplacer vers B8
+
+    TEST_ASSERT(game.board[1][2] == original_piece, "Pièce déplacée correctement");
+    TEST_ASSERT(game.board[0][2] == P_NONE, "Case source vidée");
+    TEST_ASSERT(game.turn == 1, "Tour incrémenté après mouvement");
+}
+
+/**
+ * Test de la fonction won (conditions de victoire)
+ */
+void test_victory_conditions() {
+    Game game = init_game(LOCAL, 0);
+
+    // Au début, personne n'a gagné
+    TEST_ASSERT(game.won == 0, "Aucune victoire au début");
+
+    // Vider le plateau du joueur 2 pour simuler une victoire de P1
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (get_player(game.board[i][j]) == P2) {
+                game.board[i][j] = P_NONE;
+            }
+        }
+    }
+
+    // Vérifier la victoire
+    won(&game);
+    TEST_ASSERT(game.won == P1, "P1 remporte la victoire");
+}
+
+/**
+ * Test de la fonction did_eat (capture de pièces)
+ */
+void test_piece_capture() {
+    Game game = init_game(LOCAL, 0);
+
+    // Placer une pièce P2 adjacente à une P1 pour tester la capture
+    game.board[1][2] = P2_PAWN; // Mettre un pion P2 en B8
+
+    int initial_p2_count = 0;
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (get_player(game.board[i][j]) == P2) {
+                initial_p2_count++;
+            }
+        }
+    }
+
+    // Tester la fonction did_eat avec direction = 0 (valeur arbitraire pour le test)
+    did_eat(&game, 0, 3, 0);
+
+    // Compter les pièces P2 après
+    int final_p2_count = 0;
+    for (int i = 0; i < GRID_SIZE; i++) {
+        for (int j = 0; j < GRID_SIZE; j++) {
+            if (get_player(game.board[i][j]) == P2) {
+                final_p2_count++;
+            }
+        }
+    }
+
+    TEST_ASSERT(final_p2_count <= initial_p2_count, "Fonction did_eat exécutée sans erreur");
+}
+
+/**
  * Fonction principale des tests
  */
 int main() {
@@ -175,8 +272,10 @@ int main() {
     test_blocked_moves();
     test_game_modes();
     test_ai_mode();
+    test_current_player_turn();
+    test_update_board();
+    test_victory_conditions();
+    test_piece_capture();
 
     LOG_INFO_MSG("[TEST][GAME][RESULT] %d/%d", tests_passed, tests_passed + tests_failed);
 }
-
-

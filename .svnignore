@@ -28,3 +28,8 @@ dist/
 
 docs/output/
 logs/*
+coverage/*
+build/*.gcno
+build/*.gcda
+build/game_coverage
+build/test_*
