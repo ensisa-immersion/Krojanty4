@@ -1,6 +1,17 @@
 /**
  * @file test_input.c
- * @brief Tests unitaires pour les fonctionnalités d'entrée et d'IA
+ * @brief Tests unitaires pour le module input.c
+ * 
+ * Ce fichier contient tous les tests unitaires pour les fonctions du module input.c, incluant :
+ * - Tests des fonctions de gestion de l'IA (check_ai_initial_move, check_ai_turn)
+ * - Tests des mouvements réseau de l'IA (ai_network_move)
+ * - Tests de la gestion des mouvements utilisateur (on_user_move_decided)
+ * - Tests des callbacks asynchrones de l'IA (ai_delayed_callback)
+ * - Tests des fonctions réseau mockées
+ * - Gestion des timeouts pour éviter les blocages lors des tests
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
  */
 
 #include <stdio.h>
@@ -83,12 +94,11 @@ void test_check_ai_initial_move() {
 
     // Test avec IA en mode CLIENT - peut aussi bloquer
     game.game_mode = CLIENT;
-    game.turn = 0; // Tour P1 en mode client
-
+    game.turn = 0; // Tour P1 (IA en client)
     pid = fork();
     if (pid == 0) {
         // Processus enfant avec timeout
-        alarm(3); // Timeout de 3 secondes
+        alarm(3);
         signal(SIGALRM, exit);
 
         check_ai_initial_move(&game);
@@ -107,7 +117,7 @@ void test_check_ai_initial_move() {
                 waitpid(pid, &status, 0);
                 break;
             }
-            sleep(1); // 1 seconde au lieu de usleep
+            sleep(1);
         }
         TEST_ASSERT(1, "check_ai_initial_move en mode CLIENT fonctionne");
     }
@@ -137,7 +147,7 @@ void test_check_ai_turn() {
     pid_t pid = fork();
     if (pid == 0) {
         // Processus enfant avec timeout
-        alarm(3); // Timeout de 3 secondes
+        alarm(3);
         signal(SIGALRM, exit);
 
         check_ai_turn(&game);
@@ -156,7 +166,7 @@ void test_check_ai_turn() {
                 waitpid(pid, &status, 0);
                 break;
             }
-            sleep(1); // 1 seconde au lieu de usleep
+            sleep(1);
         }
         TEST_ASSERT(1, "check_ai_turn tour P2 LOCAL fonctionne");
     }
@@ -187,7 +197,7 @@ void test_check_ai_turn() {
                 waitpid(pid, &status, 0);
                 break;
             }
-            sleep(1); // 1 seconde au lieu de usleep
+            sleep(1);
         }
         TEST_ASSERT(1, "check_ai_turn mode CLIENT fonctionne");
     }
@@ -260,7 +270,6 @@ void test_ai_delayed_callback() {
 
     Game game = init_game(LOCAL, 1); // Avec IA
 
-    // Créer une structure AITask simulée
     typedef struct {
         Game *game;
     } AITask;

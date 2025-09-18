@@ -1,7 +1,18 @@
 /**
  * @file test_move_util.c
  * @brief Tests unitaires pour les utilitaires de mouvement
+ * 
+ * Ce fichier contient tous les tests unitaires pour les fonctions utilitaires de mouvement, incluant :
+ * - La conversion des colonnes de lettres en indices
+ * - La validation des coordonnées du plateau
+ * - L'application des mouvements via GTK
+ * - La gestion des tâches de mouvement
+ * - Les tests de robustesse avec mouvements extrêmes
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
  */
+
 
 #include <stdio.h>
 #include <string.h>
@@ -212,7 +223,7 @@ void test_move_conversion() {
     TEST_ASSERT(dc2 == 3, "C8D7: destination colonne = 3 (D)");
     TEST_ASSERT(dr2 == 2, "C8D7: destination ligne = 2 (ligne 7)");
 
-    char move3[] = "I1A1";  // De I1 à A1
+    char move3[] = "I1A1";
     int sc3 = col_from_letter(move3[0]);
     int sr3 = 9 - (move3[1] - '0');
     int dc3 = col_from_letter(move3[2]);
@@ -233,7 +244,7 @@ void test_invalid_moves() {
     int sc_invalid = col_from_letter(invalid1[0]);
     TEST_ASSERT(sc_invalid == -1, "Mouvement avec colonne invalide Z");
 
-    char invalid2[] = "A0B1";  // Ligne 0 n'existe pas
+    char invalid2[] = "A0B1";
     int sr_invalid = 9 - (invalid2[1] - '0');
     TEST_ASSERT(sr_invalid == 9, "Ligne 0 convertie en index 9 (hors limites)");
 }
@@ -249,7 +260,7 @@ void test_coordinate_consistency() {
 
     // Vérifier que I1 correspond bien au coin inférieur droit (8,8)
     int col_I = col_from_letter('I');
-    int row_1 = 9 - 1;  // 9 - 1 = 8
+    int row_1 = 9 - 1;
     TEST_ASSERT(col_I == 8 && row_1 == 8, "I1 -> (8,8)");
 
     // Test de symétrie
@@ -389,7 +400,7 @@ void test_apply_move_idle_variations() {
             task->game = &game;
             task->sr = sr;
             task->sc = sc;
-            task->dr = (sr + 1) % 9; // Destination différente
+            task->dr = (sr + 1) % 9;
             task->dc = (sc + 1) % 9;
 
             int result = apply_move_idle(task);

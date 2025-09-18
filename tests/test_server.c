@@ -1,6 +1,16 @@
 /**
  * @file test_server.c
- * @brief Tests unitaires pour le module server
+ * @brief Tests unitaires pour les fonctions serveur du jeu
+ * 
+ * Ce fichier contient tous les tests pour valider le comportement des fonctions serveur :
+ * - Tests de send_message_to_client avec différents cas d'erreur
+ * - Tests de run_server_1v1 et run_server_host avec timeouts de sécurité
+ * - Tests du socket global g_server_client_socket
+ * - Tests de robustesse et de gestion d'erreurs
+ * - Tests d'intégration basiques des fonctionnalités serveur
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
  */
 
 #include <stdio.h>
@@ -105,7 +115,7 @@ void test_run_server_1v1() {
         signal(SIGALRM, exit);
 
         int result = run_server_1v1(&game, 0);
-        exit(result == -1 ? 1 : 0); // Exit 1 si erreur
+        exit(result == -1 ? 1 : 0);
     } else if (pid > 0) {
         int status;
         time_t start = time(NULL);
@@ -131,7 +141,7 @@ void test_run_server_1v1() {
         signal(SIGALRM, exit);
 
         int result = run_server_1v1(&game, -1);
-        exit(result == -1 ? 0 : 1); // On s'attend à un échec
+        exit(result == -1 ? 0 : 1);
     } else if (pid > 0) {
         int status;
         waitpid(pid, &status, 0);
@@ -145,7 +155,7 @@ void test_run_server_1v1() {
         signal(SIGALRM, exit);
 
         int result = run_server_1v1(NULL, 0);
-        exit(result == -1 ? 0 : 1); // Peut échouer ou réussir
+        exit(result == -1 ? 0 : 1);
     } else if (pid > 0) {
         int status;
         time_t start = time(NULL);
@@ -249,7 +259,7 @@ void test_server_socket_robustness() {
         struct sockaddr_in server_addr;
         server_addr.sin_family = AF_INET;
         server_addr.sin_addr.s_addr = INADDR_ANY;
-        server_addr.sin_port = htons(0); // Port automatique
+        server_addr.sin_port = htons(0);
 
         int bind_result = bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
         if (bind_result == 0) {

@@ -1,10 +1,23 @@
+/**
+ * @file move_util_test.c
+ * @brief Utilitaires de test pour les mouvements du jeu
+ * 
+ * Ce fichier contient les fonctions utilitaires pour les tests des mouvements :
+ * - Conversion des coordonnées alphabétiques en indices
+ * - Versions simplifiées des fonctions de mouvement pour les tests
+ * - Application des mouvements sans interface graphique
+ * - Simulation des mouvements pour les tests unitaires
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "move_util_test.h"
 #include "game.h"
 
-/* Mappage des colonnes A-I */
 const char COLS_MAP[10] = "ABCDEFGHI";
 
 int col_from_letter(char L) {
@@ -13,7 +26,6 @@ int col_from_letter(char L) {
 }
 
 #ifdef TEST_BUILD
-// Versions simplifiées pour les tests (sans GTK)
 typedef struct {
     Game *game;
     int sr, sc, dr, dc;
@@ -21,11 +33,10 @@ typedef struct {
 
 int apply_move_idle(void *data) {
     MoveTask *t = (MoveTask*)data;
-    /* Version simplifiée pour tests */
+    
     t->game->selected_tile[0] = t->sr;
     t->game->selected_tile[1] = t->sc;
 
-    // Simuler update_board simplement
     if (is_move_legal(t->game, t->sr, t->sc, t->dr, t->dc)) {
         Piece piece = t->game->board[t->sr][t->sc];
         t->game->board[t->sr][t->sc] = P_NONE;
@@ -34,7 +45,7 @@ int apply_move_idle(void *data) {
     }
 
     free(t);
-    return 0; // G_SOURCE_REMOVE équivalent
+    return 0;
 }
 
 void post_move_to_gtk(Game *game, const char m[4]) {

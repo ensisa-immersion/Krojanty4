@@ -1,6 +1,17 @@
 /**
  * @file test_integration.c
- * @brief Tests d'intégration pour le jeu Krojanty
+ * @brief Tests d'intégration pour le jeu
+ * 
+ * Ce fichier contient tous les tests d'intégration du jeu, incluant :
+ * - Les tests de scénarios complets de parties
+ * - L'intégration entre les modules game et move_util
+ * - Les tests de cas limites et de gestion d'erreurs
+ * - Les tests des différents modes de jeu (LOCAL, SERVER, CLIENT)
+ * - La validation des formats de mouvements
+ * - La simulation de parties réseau
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
  */
 
 #include <stdio.h>

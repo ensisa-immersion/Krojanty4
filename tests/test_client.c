@@ -1,6 +1,17 @@
 /**
  * @file test_client.c
- * @brief Tests unitaires pour le module client uniquement
+ * @brief Tests unitaires pour le module client réseau
+ * 
+ * Ce fichier contient tous les tests unitaires pour valider le comportement
+ * du module client réseau, incluant :
+ * - Tests de connexion au serveur avec différents cas d'erreur
+ * - Tests d'envoi de messages avec validation des paramètres
+ * - Tests de réception des messages et gestion des threads
+ * - Tests de fermeture des connexions et gestion des erreurs
+ * - Tests de robustesse et cas limites
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
  */
 
 #include <stdio.h>

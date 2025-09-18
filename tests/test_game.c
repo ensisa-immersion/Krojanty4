@@ -1,6 +1,18 @@
 /**
  * @file test_game.c
- * @brief Tests unitaires pour les fonctionnalités du jeu Krojanty
+ * @brief Tests unitaires pour le module de jeu
+ * 
+ * Ce fichier contient tous les tests unitaires pour valider le bon fonctionnement du module game.c, incluant :
+ * - L'initialisation du jeu et de ses paramètres
+ * - Les fonctions de calcul de score des joueurs
+ * - La validation des mouvements légaux et illégaux
+ * - Les règles de tour et de joueur actuel
+ * - Les conditions de victoire et de capture
+ * - Les différents modes de jeu (LOCAL, SERVER, CLIENT)
+ * - Le mode IA et ses interactions
+ * 
+ * @author Équipe IMM2526-GR4
+ * @date 17 septembre 2025
  */
 
 #include <stdio.h>
@@ -9,11 +21,9 @@
 #include "logging.h"
 #include "const.h"
 
-// Compteurs de tests
 static int tests_passed = 0;
 static int tests_failed = 0;
 
-// Macro pour les assertions avec messages
 #define TEST_ASSERT(condition, message) \
     do { \
         if (condition) { \
@@ -38,7 +48,6 @@ void test_game_initialization() {
     TEST_ASSERT(game.selected_tile[0] == -1, "Aucune case sélectionnée au début");
     TEST_ASSERT(game.selected_tile[1] == -1, "Aucune case sélectionnée au début");
 
-    // Vérifier les positions initiales des pièces
     TEST_ASSERT(game.board[0][2] == P1_PAWN, "Pion P1 en position C9");
     TEST_ASSERT(game.board[1][1] == P1_KING, "Roi P1 en position B8");
     TEST_ASSERT(game.board[7][7] == P2_KING, "Roi P2 en position H2");
@@ -78,20 +87,15 @@ void test_legal_moves() {
 
     TEST_ASSERT(is_move_legal(&game, 0, 3, 0, 5), "Mouvement horizontal valide");
 
-    // Test mouvement vertical : (3,0) vers (4,0)
     TEST_ASSERT(is_move_legal(&game, 3, 0, 4, 0), "Mouvement vertical valide");
 
-    // Test mouvement diagonal invalide
     TEST_ASSERT(!is_move_legal(&game, 2, 0, 3, 1), "Mouvement diagonal invalide");
 
-    // Test mouvement vers case occupée
     TEST_ASSERT(!is_move_legal(&game, 2, 0, 2, 1), "Mouvement vers case occupée invalide");
 
-    // Test mouvement hors limites
     TEST_ASSERT(!is_move_legal(&game, 0, 0, -1, 0), "Mouvement hors limites invalide");
     TEST_ASSERT(!is_move_legal(&game, 8, 8, 9, 8), "Mouvement hors limites invalide");
 
-    // Test mouvement depuis case vide
     TEST_ASSERT(!is_move_legal(&game, 4, 4, 4, 5), "Mouvement depuis case vide invalide");
 }
 
@@ -101,16 +105,12 @@ void test_legal_moves() {
 void test_turn_rules() {
     Game game = init_game(LOCAL, 0);
 
-    // Au tour 0, seul P1 peut jouer - utiliser (3,0) vers (4,0)
     TEST_ASSERT(is_move_legal(&game, 3, 0, 4, 0), "P1 peut jouer au tour 0");
 
-    // P2 ne peut pas jouer au tour 0 - utiliser position (6,6) vers (6,5)
     TEST_ASSERT(!is_move_legal(&game, 6, 6, 6, 5), "P2 ne peut pas jouer au tour 0");
 
-    // Changer de tour
     game.turn = 1;
 
-    // Au tour 1, seul P2 peut jouer
     TEST_ASSERT(!is_move_legal(&game, 3, 0, 4, 0), "P1 ne peut pas jouer au tour 1");
     TEST_ASSERT(is_move_legal(&game, 6, 6, 6, 5), "P2 peut jouer au tour 1");
 }
@@ -121,17 +121,13 @@ void test_turn_rules() {
 void test_blocked_moves() {
     Game game = init_game(LOCAL, 0);
 
-    // Créer un obstacle sur le chemin
     game.board[2][2] = P2_PAWN;
 
-    // Test mouvement bloqué horizontalement
     TEST_ASSERT(!is_move_legal(&game, 2, 0, 2, 4), "Mouvement horizontal bloqué");
 
-    // Enlever l'obstacle et créer un obstacle vertical
     game.board[2][2] = P_NONE;
     game.board[3][0] = P2_PAWN;
 
-    // Test mouvement bloqué verticalement
     TEST_ASSERT(!is_move_legal(&game, 2, 0, 5, 0), "Mouvement vertical bloqué");
 }
 
@@ -165,18 +161,14 @@ void test_ai_mode() {
 void test_current_player_turn() {
     Game game = init_game(LOCAL, 0);
 
-    // Tour 0 = P1
     TEST_ASSERT(current_player_turn(&game) == P1, "Tour 0: joueur P1");
 
-    // Tour 1 = P2
     game.turn = 1;
     TEST_ASSERT(current_player_turn(&game) == P2, "Tour 1: joueur P2");
 
-    // Tour 2 = P1
     game.turn = 2;
     TEST_ASSERT(current_player_turn(&game) == P1, "Tour 2: joueur P1");
 
-    // Tour 3 = P2
     game.turn = 3;
     TEST_ASSERT(current_player_turn(&game) == P2, "Tour 3: joueur P2");
 }
@@ -187,11 +179,9 @@ void test_current_player_turn() {
 void test_update_board() {
     Game game = init_game(LOCAL, 0);
 
-    // Sauvegarder l'état initial
-    Piece original_piece = game.board[0][2]; // Pion P1 en C9
+    Piece original_piece = game.board[0][2];
 
-    // Tester le mouvement d'un pion
-    update_board(&game, 1, 2); // Déplacer vers B8
+    update_board(&game, 1, 2);
 
     TEST_ASSERT(game.board[1][2] == original_piece, "Pièce déplacée correctement");
     TEST_ASSERT(game.board[0][2] == P_NONE, "Case source vidée");
@@ -204,10 +194,8 @@ void test_update_board() {
 void test_victory_conditions() {
     Game game = init_game(LOCAL, 0);
 
-    // Au début, personne n'a gagné
     TEST_ASSERT(game.won == 0, "Aucune victoire au début");
 
-    // Vider le plateau du joueur 2 pour simuler une victoire de P1
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
             if (get_player(game.board[i][j]) == P2) {
@@ -216,7 +204,6 @@ void test_victory_conditions() {
         }
     }
 
-    // Vérifier la victoire
     won(&game);
     TEST_ASSERT(game.won == P1, "P1 remporte la victoire");
 }
@@ -227,8 +214,7 @@ void test_victory_conditions() {
 void test_piece_capture() {
     Game game = init_game(LOCAL, 0);
 
-    // Placer une pièce P2 adjacente à une P1 pour tester la capture
-    game.board[1][2] = P2_PAWN; // Mettre un pion P2 en B8
+    game.board[1][2] = P2_PAWN;
 
     int initial_p2_count = 0;
     for (int i = 0; i < GRID_SIZE; i++) {
@@ -239,10 +225,8 @@ void test_piece_capture() {
         }
     }
 
-    // Tester la fonction did_eat avec direction = 0 (valeur arbitraire pour le test)
     did_eat(&game, 0, 3, 0);
 
-    // Compter les pièces P2 après
     int final_p2_count = 0;
     for (int i = 0; i < GRID_SIZE; i++) {
         for (int j = 0; j < GRID_SIZE; j++) {
