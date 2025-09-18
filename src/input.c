@@ -172,6 +172,7 @@ void check_ai_initial_move(Game *game) {
     
     if (game->turn == 0 && game->game_mode == CLIENT) {
         // Mode client: IA joue P1 (Bleu) et commence en premier
+        // client_first_move(game);
         should_start = 1;
         LOG_INFO_MSG("[AI] IA client (P1/Bleu) commence la partie");
     } else if (game->turn == 0 && game->game_mode == LOCAL) {
@@ -184,7 +185,6 @@ void check_ai_initial_move(Game *game) {
     if (should_start) {
         // Délai réduit pour une meilleure réactivité utilisateur
         usleep(500000); // 0.5 seconde de pause
-        
         if (game->game_mode == CLIENT) {
             ai_network_move(game);
         } else if (game->game_mode == LOCAL) {

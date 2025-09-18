@@ -892,6 +892,8 @@ void ai_next_move(Game* game) {
     // Calcul du meilleur mouvement avec la profondeur configurée
     Move best_move = minimax_best_move(&copy, DEPTH);
 
+    // Si c'est le premier tour, jouer un mouvement d'ouverture fixe
+
     if (best_move.src_row != -1 && best_move.src_col != -1 && best_move.dst_row != -1 && best_move.dst_col != -1) {
         // Application du mouvement choisi au jeu réel
         game->selected_tile[0] = best_move.src_row;
