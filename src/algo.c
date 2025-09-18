@@ -52,8 +52,8 @@ UtilWeights W = {
     .PIECE_VALUE = 100,
     .MOBILITY = 50,
     .CENTER = 125,
-    .TACTICS = 50,
-    .THREATS = 50
+    .TACTICS = 100,
+    .THREATS = 100
 };
 
 /**
@@ -507,12 +507,14 @@ int utility(Game * game, Player player) {
     if (!king_is_alive(game, P2)) return (player == P2) ? W.LOSS : W.WIN;
 
     // Vérification des bases capturées
-     if (game->board[8][0] == P1_KING || get_player(game->board[8][0]) == P1) {
+    /* 
+    if (game->board[8][0] == P1_KING || get_player(game->board[8][0]) == P1) {
         return (player == P2) ? W.LOSS : W.WIN;
     }
     if (game->board[0][8] == P2_KING || get_player(game->board[0][8]) == P2) {
         return (player == P1) ? W.LOSS : W.WIN;
-    }
+    } 
+    */
 
     // Vérification des conditions de fin de partie
     if ((piece_p1 <= 2 && king_is_alive(game, P1)) || (piece_p2 <= 2 && king_is_alive(game, P2)) || game->turn >= 64) {
@@ -523,8 +525,10 @@ int utility(Game * game, Player player) {
     // Initialisation des scores pour chaque joueur
     int score = 0;
 
-    // score += util_forward(game, player);
+    // Calcul des différentes composantes du score
+    // L'ajout de multiples facteurs permet une évaluation plus nuancée
 
+    // score += util_forward(game, player);
     score += util_kings(game, player);
     score += util_forward(game, player);
     score += util_threats(game, player);
@@ -547,9 +551,7 @@ int utility(Game * game, Player player) {
  
 
     // Calcul du score final relatif au joueur évalué
-    // int final_score = (player == P2) ? score_p2 - score_p1 : score_p1 - score_p2;
     return score;
-    // return final_score;
 }
 
 
@@ -689,8 +691,12 @@ int all_possible_moves_ordered(Game *game, Move *move_list, Player player) {
                     int score = utility(game, player);
 
                     if (undo_info.eaten_count > 0) {
-                        score += undo_info.eaten_count * 500; // grosse récompense pour capture
+                        score += undo_info.eaten_count * W.PIECE_VALUE; // grosse récompense pour capture
                     }
+
+                    // Bonus pour menaces au roi adverse
+                    Player opponent = (player == P1) ? P2 : P1;
+                    if(king_threats(game, opponent)>=2) score += W.KING_VALUE;
 
                     // Ajout du mouvement au tableau
                     scored_moves[size].s_move = move;
@@ -762,8 +768,10 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
             undo_board_ai(game, undo_info);
 
             // Mise à jour du meilleur score et élagage alpha-bêta
+
             // best_score = (current_score >= best_score) ? current_score : best_score;
             // alpha = (alpha > best_score) ? alpha : best_score;
+
             if (current_score > best_score) best_score = current_score;
             if (current_score > alpha) alpha = current_score;
             if (beta <= alpha) break; // Élagage
@@ -787,8 +795,10 @@ int minimax_alpha_beta(Game * game, int depth, int maximizing, int alpha, int be
             undo_board_ai(game, undo_info);
 
             // Mise à jour du meilleur score et élagage alpha-bêta
+
             // best_score = (current_score <= best_score) ? current_score : best_score;
             // beta = (beta < best_score) ? beta : best_score;
+
             if (current_score < best_score) best_score = current_score;
             if (current_score < beta) beta = current_score;
             if (beta <= alpha) break; // Élagage
@@ -855,8 +865,8 @@ Move minimax_best_move(Game* game, int depth) {
  * @param game Pointeur vers la structure de jeu à modifier
  */
 void client_first_move(Game * game) {
-    // Mouvement d'ouverture prédéfini : déplacement de (2,2) vers (4,2)
-    Move first_move = {2, 2, 4, 2, -1};
+    // Mouvement d'ouverture prédéfini : déplacement de (0,3) vers (0,7)
+    Move first_move = {0, 3, 0, 7, -1};
 
     // Application du mouvement
     game->selected_tile[0] = first_move.src_row;
