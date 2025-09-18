@@ -90,4 +90,5 @@ gboolean apply_move_idle(gpointer data);
  */
 void post_move_to_gtk(Game *game, const char m[4]);
 
-#endif 
+#endif
+
