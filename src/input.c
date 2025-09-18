@@ -172,7 +172,19 @@ void check_ai_initial_move(Game *game) {
     
     if (game->turn == 0 && game->game_mode == CLIENT) {
         // Mode client: IA joue P1 (Bleu) et commence en premier
-        // client_first_move(game);
+        client_first_move(game);
+
+        // Synchronisation réseau du coup forcé
+        char move[5];
+        move[0] = COLS_MAP[3];            // src_col = 3
+        move[1] = (char)('9' - 0);        // src_row = 0
+        move[2] = COLS_MAP[7];            // dst_col = 7
+        move[3] = (char)('9' - 0);        // dst_row = 0
+        move[4] = '\0';
+
+        if (g_client_socket >= 0) {
+            send_message(g_client_socket, move);
+        }
         should_start = 1;
         LOG_INFO_MSG("[AI] IA client (P1/Bleu) commence la partie");
     } else if (game->turn == 0 && game->game_mode == LOCAL) {
@@ -186,7 +198,7 @@ void check_ai_initial_move(Game *game) {
         // Délai réduit pour une meilleure réactivité utilisateur
         usleep(500000); // 0.5 seconde de pause
         if (game->game_mode == CLIENT) {
-            ai_network_move(game);
+            // ai_network_move(game);
         } else if (game->game_mode == LOCAL) {
             check_ai_turn(game);
         }
